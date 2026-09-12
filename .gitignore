@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js build output
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Turborepo cache
+.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

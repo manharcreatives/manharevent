@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+allowBuilds:
+  '@next/swc-win32-x64-msvc': true
+  sharp: true
+  unrs-resolver: true
