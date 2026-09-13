@@ -1,1 +1,11 @@
 @import "@manhar-garba/ui/globals.css";
+
+/*
+ * Tailwind v4 auto-detects sources relative to this stylesheet, which stops at
+ * the app boundary — so every class that only ever appears inside the design
+ * system (`bg-primary` on <Button>, the OTP slot's `h-9 w-9 border`, the badge
+ * and input variants) was being dropped from the bundle. Buttons rendered as
+ * bare text and the OTP boxes collapsed to 0px. Point Tailwind at the package
+ * that owns them.
+ */
+@source "../../../../packages/ui/src";

@@ -22,10 +22,18 @@ export async function syncManifest(): Promise<{ entries: number; fromCache: bool
   return { entries: entries.length, fromCache: false };
 }
 
+/** Forces a re-download even when the cached copy is still inside the stale window. */
+export async function refreshManifest(): Promise<{ entries: number }> {
+  const settings = await loadSettings();
+  const entries = await buildScanManifest(EVENT_ID, settings.night_id);
+  await storeManifest(entries);
+  return { entries: entries.length };
+}
+
 export async function getManifest(): Promise<ScanManifestEntry[]> {
   const cached = await loadManifest();
   if (cached.length > 0) return cached;
-  const { entries: _ } = await syncManifest();
+  await syncManifest();
   return loadManifest();
 }
 

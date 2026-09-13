@@ -120,6 +120,8 @@ export default function MyPassesPage() {
                 admits={pass.admits}
                 nightRange={tBook("nightsCovered", { count: pass.nightCount })}
                 passCode={pass.passCode}
+                admitsLabel={t("admitsShort", { count: pass.admits })}
+                transferredLabel={t("transferredPass")}
               />
             ))}
           </div>

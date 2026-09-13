@@ -75,16 +75,20 @@ export default function NotificationsPage() {
         {TEMPLATES.map((t) => (
           <li key={t.key} className="flex items-start gap-4 px-4 py-3.5">
             <div className="min-w-0 flex-1">
-              <label htmlFor={t.key} className="cursor-pointer font-medium text-foreground">
-                {t.label}
-              </label>
+              {/* A Radix Switch renders a <button role="switch">, and a
+                  <label for> does not name a button for a screen reader — six
+                  of these announced nothing at all. aria-label does name it. */}
+              <p className="font-medium text-foreground">{t.label}</p>
               <p className="text-xs text-muted-foreground">{t.channel}</p>
-              <p className="mt-1 text-xs text-muted-foreground/80">{t.detail}</p>
+              <p id={`${t.key}-detail`} className="mt-1 text-xs text-muted-foreground/80">{t.detail}</p>
             </div>
             <Switch
               id={t.key}
               checked={draft[t.key]}
+              aria-label={`${t.label} — ${t.channel}`}
+              aria-describedby={`${t.key}-detail`}
               onCheckedChange={(checked) => setDraft((d) => ({ ...d, [t.key]: checked }))}
+              className="mt-0.5 shrink-0"
             />
           </li>
         ))}

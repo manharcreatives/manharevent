@@ -2,50 +2,54 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Button, Input } from "@manhar-garba/ui";
+import { Button, Field, Input } from "@manhar-garba/ui";
 import { useAuthStore } from "@/lib/auth-store";
 import { useRouter } from "@/i18n/navigation";
 
-// FE-11: wired to the "Auth" i18n namespace — see auth/start's file comment.
 export default function AuthProfilePage() {
   const t = useTranslations("Auth");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
-  const { setName } = useAuthStore();
+  const { phone, setName, confirmPhone } = useAuthStore();
   const [nameInput, setNameInput] = useState("");
 
-  function handleSave() {
-    if (nameInput.trim()) setName(nameInput.trim());
-    router.push("/me");
+  function finish(name?: string) {
+    // Skipping the name still leaves a signed-in session — the number is what
+    // identifies the buyer. Previously "Skip for now" dropped the visitor into
+    // /me without ever setting `isAuthenticated`.
+    if (name?.trim()) setName(name.trim());
+    else if (phone) confirmPhone(phone);
+    router.push("/me/passes");
   }
 
   return (
-    <div className="mx-auto max-w-[400px] px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-[420px] px-4 py-12 sm:px-6 sm:py-16">
       <h1 className="font-display text-2xl font-bold text-foreground">{t("nameLabel")}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("profileSubtitle")}</p>
 
-      <div className="mt-8 space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-foreground">
-            {t("nameLabel")}
-          </label>
+      <div className="mt-6 space-y-4">
+        <Field label={t("nameLabel")} htmlFor="name">
           <Input
             id="name"
-            type="text"
+            name="name"
+            autoComplete="name"
             placeholder={t("namePlaceholder")}
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            className="mt-1.5"
-            onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+            onKeyDown={(e) => { if (e.key === "Enter") finish(nameInput); }}
           />
-        </div>
+        </Field>
 
-        <Button className="w-full" onClick={handleSave}>
+        <Button className="w-full" onClick={() => finish(nameInput)}>
           {t("save")} →
         </Button>
+
         <button
-          onClick={() => router.push("/me")}
-          className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+          type="button"
+          onClick={() => finish()}
+          className="min-h-11 w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
-          Skip for now
+          {tCommon("skipForNow")}
         </button>
       </div>
     </div>

@@ -85,15 +85,27 @@ function entry(
   };
 }
 
-/** A couple of resolved entries so the log doesn't read as empty on a fresh demo. */
+/**
+ * A resolved entry so the log doesn't read as empty on a fresh demo.
+ *
+ * Every field is a literal on purpose. This module is evaluated once on the
+ * server (at build time) and again in the browser, and a seed built with
+ * `entry()` would get `crypto.randomUUID()` and `new Date()` from each — so the
+ * timestamp React rendered on the server and the one it rendered on the client
+ * were weeks apart, which is the hydration mismatch that made
+ * `/admin/emergency` throw React #418 in production.
+ */
 const seedActions: EmergencyAction[] = [
-  entry(
-    "banner",
-    tenantApplications[0]?.id ?? null,
-    "Rajkot Raas Garba — public site",
-    "Parking full, advised attendees to use the Kalavad Road lot",
-    false
-  ),
+  {
+    id: "emg-seed-banner-1",
+    kind: "banner",
+    tenantId: tenantApplications[0]?.id ?? null,
+    scope: "Rajkot Raas Garba — public site",
+    reason: "Parking full, advised attendees to use the Kalavad Road lot",
+    actor: ACTOR,
+    at: "2026-10-04T15:20:00.000Z",
+    active: false,
+  },
 ];
 
 export const usePlatformStore = create<PlatformState & PlatformActions>()(

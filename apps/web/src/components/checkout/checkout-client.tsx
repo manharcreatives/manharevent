@@ -4,12 +4,13 @@ import { useState, useTransition } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import type { Order, Pass } from "@manhar-garba/domain";
 import { computeFees, normalizePhone, isValidIndianPhone } from "@manhar-garba/domain";
-import { Button, Input, FeeBreakdown } from "@manhar-garba/ui";
+import { Button, Input, FeeBreakdown, OtpInput } from "@manhar-garba/ui";
 import { useCartStore } from "@/lib/cart-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useRouter } from "@/i18n/navigation";
 import { payMockOrder } from "@/app/actions/order";
-import { Shield, Phone, MessageSquare } from "lucide-react";
+import { Shield, Phone, MessageSquare, Sparkles } from "lucide-react";
+import { DemoNotice } from "@/components/common/demo-notice";
 
 type CheckoutStep = "contact" | "otp" | "pay";
 
@@ -20,10 +21,11 @@ interface Props {
 
 export function CheckoutClient({ order }: Props) {
   const t = useTranslations("Checkout");
+  const tCommon = useTranslations("Common");
   const locale = useLocale();
   const router = useRouter();
   const cart = useCartStore();
-  const { phone, name, setPhone, setName } = useAuthStore();
+  const { phone, name, setPhone, setName, confirmPhone } = useAuthStore();
 
   const [step, setStep] = useState<CheckoutStep>(phone ? "pay" : "contact");
   const [phoneInput, setPhoneInput] = useState(phone ?? "");
@@ -54,7 +56,7 @@ export function CheckoutClient({ order }: Props) {
     // Shared with the gate scanner's sign-in, so "98765 43210", "098765…"
     // and "+91 98765-43210" all resolve the same way on both surfaces.
     if (!isValidIndianPhone(phoneInput)) {
-      setPhoneError("Enter a valid 10-digit Indian mobile number");
+      setPhoneError(t("invalidPhone"));
       return;
     }
     setPhoneError("");
@@ -62,10 +64,22 @@ export function CheckoutClient({ order }: Props) {
     setStep("otp");
   }
 
-  function handleVerifyOtp() {
-    // Mock: any 6-digit OTP passes
-    if (otp.length < 4) return;
+  // Demo bypass: no code is sent and none is checked. The real verification
+  // lands with the backend (P-09); this UI is the one that ships either way.
+  function handleVerifyOtp(code = otp) {
+    if (code.length < 6) return;
+    // Clearing the code is what makes the session real, here as in /auth/verify
+    // — so a buyer who checks out is signed in afterwards and can find the pass
+    // again under My Passes without signing in a second time.
+    if (phone) confirmPhone(phone);
     setStep("pay");
+  }
+
+  function handleOtpChange(value: string) {
+    setOtp(value);
+    // Auto-advance on the sixth digit — nobody should have to reach for a
+    // button after typing a complete code.
+    if (value.length === 6) handleVerifyOtp(value);
   }
 
   function handleMockPay() {
@@ -133,9 +147,20 @@ export function CheckoutClient({ order }: Props) {
           </div>
 
           <div className="flex items-start gap-2 rounded-lg border border-border bg-surface p-3 text-xs text-muted-foreground">
-            <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-            Your QR pass will also be sent to this number on WhatsApp.
+            <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            {t("whatsappDelivery")}
           </div>
+
+          <DemoNotice>{t("demoPhoneHint")}</DemoNotice>
+
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => { setPhoneInput("9825011001"); setPhoneError(""); }}
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            {t("useDemoNumber")}
+          </Button>
 
           <Button className="w-full" onClick={handleSendOtp}>
             <Phone className="mr-2 h-4 w-4" />
@@ -148,22 +173,25 @@ export function CheckoutClient({ order }: Props) {
       {step === "otp" && (
         <div className="mt-8 space-y-5">
           <p className="text-sm text-muted-foreground">{t("otpSent", { phone: phone ?? "" })}</p>
+          <DemoNotice>{tCommon("demoOtpHint")}</DemoNotice>
+
           <div>
-            <label htmlFor="otp" className="block text-sm font-medium text-foreground">
-              {t("otpLabel")} <span className="text-muted-foreground text-xs">({t("demoNote")})</span>
-            </label>
-            <Input
-              id="otp"
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder={t("otpPlaceholder")}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-              className="mt-1.5 tracking-widest"
-            />
+            <span className="block text-sm font-medium text-foreground">{t("otpLabel")}</span>
+            <div className="mt-1.5">
+              <OtpInput value={otp} onChange={handleOtpChange} />
+            </div>
           </div>
-          <Button className="w-full" onClick={handleVerifyOtp} disabled={otp.length < 4}>
+
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => { setOtp("123456"); handleVerifyOtp("123456"); }}
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            {tCommon("useDemoCode")}
+          </Button>
+
+          <Button className="w-full" onClick={() => handleVerifyOtp()} disabled={otp.length < 6}>
             {t("continue")} →
           </Button>
           <button

@@ -505,10 +505,17 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
       issueScannerCredential: (teamMemberId, gateLabel) => {
         const member = get().team.find((m) => m.id === teamMemberId);
         if (!member) return;
+        // Never reuse a serial this person has already had. The code is derived
+        // from (phone, event, serial), so re-issuing at serial 1 after a revoke
+        // handed back the exact code that was just revoked — and apps/scanner,
+        // which verifies statelessly, would have accepted it.
+        const highestSerial = get()
+          .scannerCredentials.filter((c) => c.teamMemberId === teamMemberId)
+          .reduce((max, c) => Math.max(max, c.serial), 0);
         const credential: ScannerCredential = {
           id: crypto.randomUUID(),
           teamMemberId,
-          serial: 1,
+          serial: highestSerial + 1,
           gateLabel: gateLabel ?? member.gateLabel ?? null,
           issuedAt: new Date().toISOString(),
           revokedAt: null,

@@ -50,9 +50,9 @@ import { Inbox } from "lucide-react";
 import { toast } from "@manhar-garba/ui";
 
 const ZONES: ZoneRegion[] = [
-  { id: "vip", label: "VIP", token: "vip", path: "M 80 40 L 220 40 L 220 120 L 80 120 Z", available: true },
-  { id: "gold", label: "Gold", token: "gold", path: "M 40 130 L 260 130 L 260 220 L 40 220 Z", available: true },
-  { id: "general", label: "General", token: "general", path: "M 20 230 L 280 230 L 280 340 L 20 340 Z", available: true },
+  { id: "vip", label: "VIP", token: "vip", x: 80, y: 46, width: 140, height: 78, available: true },
+  { id: "gold", label: "Gold", token: "gold", x: 40, y: 136, width: 220, height: 88, available: true },
+  { id: "general", label: "General", token: "general", x: 20, y: 236, width: 260, height: 108, available: true },
 ];
 
 export default function GalleryPage() {

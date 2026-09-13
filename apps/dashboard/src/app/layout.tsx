@@ -4,8 +4,14 @@ import { ThemeProvider, themeScript, Toaster } from "@manhar-garba/ui";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ManharEvent — Dashboard",
-  description: "Organizer dashboard",
+  // Each route group sets its own template; this is only the fallback for
+  // anything outside them (404, the gallery, the / redirect).
+  title: { default: "ManharEvent", template: "%s · ManharEvent" },
+  description:
+    "ManharEvent organizer dashboard — sell passes, run the gates, and reconcile the money for a Navratri season.",
+  // Nothing behind this origin is public: no search engine should ever hold a
+  // page of an organizer's takings or their attendee list.
+  robots: { index: false, follow: false },
   icons: {
     icon: [{ url: "/brand/manharevent-favicon-32.png", sizes: "32x32", type: "image/png" }],
     apple: [{ url: "/brand/manharevent-icon-square-192.png", sizes: "192x192" }],

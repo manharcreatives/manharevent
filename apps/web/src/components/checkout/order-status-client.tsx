@@ -48,8 +48,9 @@ export function OrderStatusClient({ order, passes, zones, eventSlug }: Props) {
                   zoneName={zone?.name ?? "Zone"}
                   zoneColor={zone?.color ?? "#6366f1"}
                   admits={pass.admits}
-                  nightRange={`${pass.night_ids.length} night${pass.night_ids.length !== 1 ? "s" : ""}`}
+                  nightRange={t("nightsCovered", { count: pass.night_ids.length })}
                   passCode={pass.pass_code}
+                  admitsLabel={t("admitsShort", { count: pass.admits })}
                 />
                 {/*
                   The same real, scannable code as My Passes. This used to be a

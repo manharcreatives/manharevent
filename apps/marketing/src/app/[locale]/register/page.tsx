@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Field, PhoneInput, LoadingButton } from "@manhar-garba/ui";
+import { Field, PhoneInput, LoadingButton, Button } from "@manhar-garba/ui";
+import { Sparkles } from "lucide-react";
+import { RegisterSteps } from "@/components/register/register-steps";
+import { DemoNotice } from "@/components/demo-notice";
 import { useRegistrationStore } from "@/lib/registration-store";
 import { useRouter } from "@/i18n/navigation";
 
@@ -29,11 +32,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[420px] px-4 py-16 sm:px-6">
-      <h1 className="font-display text-2xl font-bold text-foreground">{t("title")}</h1>
+    <div className="mx-auto max-w-[420px] px-4 py-12 sm:px-6 sm:py-16">
+      <RegisterSteps current={1} />
+
+      <h1 className="mt-6 font-display text-2xl font-bold text-foreground">{t("title")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
 
-      <div className="mt-8 space-y-4">
+      <div className="mt-6 space-y-4">
+        <DemoNotice>{t("demoPhoneHint")}</DemoNotice>
+
         <Field label={t("phoneLabel")} htmlFor="phone" error={error}>
           <PhoneInput
             id="phone"
@@ -42,6 +49,15 @@ export default function RegisterPage() {
             onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
           />
         </Field>
+
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() => { setPhoneInput("9825011001"); setError(""); }}
+        >
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
+          {t("useDemoNumber")}
+        </Button>
 
         <LoadingButton
           className="w-full"

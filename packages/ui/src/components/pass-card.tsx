@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import Image from "next/image";
 import { cn } from "../lib/utils";
 import { CopyableCode } from "./copyable-code";
@@ -18,6 +18,15 @@ interface PassCardProps {
   checkedInAt?: string;
   refundedOn?: string;
   className?: string;
+  /**
+   * The scannable code, rendered inside the card. Omit it and the card simply
+   * has no QR panel — it used to draw an empty box reading "[QR code]", which
+   * shipped straight to the buyer's confirmation screen.
+   */
+  qr?: React.ReactNode;
+  /** Localised strings — the design system has no locale of its own. */
+  admitsLabel?: string;
+  transferredLabel?: string;
 }
 
 export function PassCard({
@@ -32,6 +41,9 @@ export function PassCard({
   imageUrl,
   checkedInAt,
   className,
+  qr,
+  admitsLabel,
+  transferredLabel = "Transferred to another holder",
 }: PassCardProps) {
   const isDisabled = state === "refunded" || state === "transferred-away";
   const isUsed = state === "used-tonight";
@@ -97,15 +109,15 @@ export function PassCard({
           >
             {zoneName}
           </span>
-          <span className="text-xs text-muted-foreground">Admits {admits}</span>
+          <span className="text-xs text-muted-foreground">{admitsLabel ?? `Admits ${admits}`}</span>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{nightRange}</p>
       </div>
 
-      {/* QR placeholder */}
-      {!isDisabled && (
-        <div className="mx-4 mb-2 flex h-24 items-center justify-center rounded border border-border bg-white">
-          <span className="text-xs text-muted-foreground">[QR code]</span>
+      {/* The real code, when the caller has one to show. */}
+      {!isDisabled && qr && (
+        <div className="mx-4 mb-2 flex items-center justify-center rounded border border-border bg-white p-3">
+          {qr}
         </div>
       )}
 
@@ -117,7 +129,7 @@ export function PassCard({
       {/* transferred-away overlay */}
       {state === "transferred-away" && (
         <div className="absolute inset-0 flex items-end justify-center bg-background/60 pb-8">
-          <p className="text-sm text-muted-foreground">Transferred to another holder</p>
+          <p className="text-sm text-muted-foreground">{transferredLabel}</p>
         </div>
       )}
     </div>

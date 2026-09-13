@@ -2,8 +2,8 @@
 
 import { useEffect, useState, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { loadSession, type GateSession } from "@/lib/session";
+import { ScannerShell } from "./ScannerShell";
 
 const SessionContext = createContext<GateSession | null>(null);
 
@@ -23,8 +23,10 @@ export function useGateSession(): GateSession {
 /**
  * Client-side guard rather than middleware: the session lives in localStorage
  * so that the scanner still opens with no network, and middleware can't read
- * localStorage. The trade-off is a brief spinner on first paint, which is
- * cheaper than a scanner that refuses to start when the venue wifi drops.
+ * localStorage. The trade-off is that the server has nothing to render until the
+ * bundle runs — which is why the fallback is a full shell and not a spinner.
+ * This one component is what every /scan/* route paints first, so a bare
+ * <Loader2/> here meant the entire app server-rendered an empty screen.
  */
 export function GateSessionGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -42,11 +44,7 @@ export function GateSessionGuard({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   if (!checked || !session) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ScannerShell subtitle="Checking this phone's gate sign-in" />;
   }
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;

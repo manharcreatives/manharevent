@@ -2,7 +2,9 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button, Money } from "@manhar-garba/ui";
 import type { Zone } from "@manhar-garba/domain";
-import { getZoneFromPrice, listPassTypesForZone } from "@manhar-garba/mock-data";
+import { listPassTypesForZone } from "@manhar-garba/mock-data";
+import { zoneFromPricePaise } from "@/lib/pricing";
+import { inkOn } from "@/lib/contrast";
 import { Users, ArrowRight } from "lucide-react";
 
 interface ZoneCardsSectionProps {
@@ -25,7 +27,7 @@ export async function ZoneCardsSection({ zones, eventId, eventSlug }: ZoneCardsS
   const cards = await Promise.all(
     zones.map(async (zone) => ({
       zone,
-      fromPaise: await getZoneFromPrice(eventId, zone.id),
+      fromPaise: await zoneFromPricePaise(eventId, zone.id),
       passTypes: await listPassTypesForZone(eventId, zone.id),
     }))
   );
@@ -33,7 +35,9 @@ export async function ZoneCardsSection({ zones, eventId, eventSlug }: ZoneCardsS
   return (
     <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map(({ zone, fromPaise, passTypes }) => {
-        const onSale = passTypes.filter((pt) => pt.status === "on_sale");
+        const onSale = passTypes.filter(
+          (pt) => pt.status === "on_sale" && pt.total_quantity - pt.sold_quantity - pt.held_quantity > 0
+        );
         const maxAdmits = onSale.reduce((max, pt) => Math.max(max, pt.admits), 0);
         const soldOut = fromPaise === null || onSale.length === 0;
 
@@ -50,13 +54,13 @@ export async function ZoneCardsSection({ zones, eventId, eventSlug }: ZoneCardsS
           >
             <div className="flex items-center justify-between">
               <span
-                className="rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white"
-                style={{ backgroundColor: zone.color ?? "hsl(var(--primary))" }}
+                className="rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide"
+                style={{ backgroundColor: zone.color ?? "hsl(var(--primary))", color: inkOn(zone.color) }}
               >
                 {zone.code}
               </span>
               <span className="text-xs text-muted-foreground">
-                {zone.capacity.toLocaleString("en-IN")} capacity
+                {t("capacity", { count: zone.capacity.toLocaleString("en-IN") })}
               </span>
             </div>
 
@@ -66,7 +70,7 @@ export async function ZoneCardsSection({ zones, eventId, eventSlug }: ZoneCardsS
             {maxAdmits > 1 && (
               <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                 <Users className="h-3 w-3" />
-                Solo, couple and family passes — one pass admits up to {maxAdmits}
+                {t("multiAdmitHint", { count: maxAdmits })}
               </p>
             )}
 
@@ -78,7 +82,7 @@ export async function ZoneCardsSection({ zones, eventId, eventSlug }: ZoneCardsS
                 </p>
               </div>
               {soldOut ? (
-                <span className="text-xs font-medium text-muted-foreground">Not on sale</span>
+                <span className="text-xs font-medium text-muted-foreground">{t("soldOut")}</span>
               ) : (
                 <Button size="sm" tabIndex={-1} className="pointer-events-none">
                   {t("bookPasses")}

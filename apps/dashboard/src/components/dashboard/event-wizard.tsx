@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Check, Copy } from "lucide-react";
 import { Button, Input, Field, toast } from "@manhar-garba/ui";
@@ -8,24 +9,67 @@ import { bpsToPercent, PLATFORM_FEE_BPS, GATEWAY_FEE_BPS } from "@manhar-garba/d
 import { useDashboardStore, type ReentryMode } from "@/lib/dashboard-store";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const STEPS = ["Basics", "Dates & nights", "Venue", "Passes & fees", "Review"];
+const STEPS = ["Basics", "Dates & nights", "Venue", "Passes & fees", "Review"] as const;
 
-function StepIndicator({ current, total }: { current: number; total: number }) {
+const REENTRY_LABEL: Record<ReentryMode, string> = {
+  unlimited: "Unlimited re-entry",
+  once: "Single entry only",
+  timed: "Timed re-entry window",
+};
+
+/** `2026-10-02` + 8 → `2026-10-10`, in UTC so a night never slips a day. */
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Numbered dots alone told the organizer they were on "step 1 of 5" and
+ * nothing about what the other four would ask for. Each step now carries its
+ * name, and every completed step is a button back to it.
+ */
+function StepIndicator({
+  current,
+  steps,
+  onJump,
+}: {
+  current: number;
+  steps: readonly string[];
+  onJump: (index: number) => void;
+}) {
   return (
-    <ol className="flex items-center gap-2">
-      {Array.from({ length: total }).map((_, i) => (
-        <li key={i} className="flex items-center gap-2">
-          <div
-            className={[
-              "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold",
-              i < current ? "bg-success text-white" : i === current ? "bg-primary text-white" : "bg-surface-raised text-muted-foreground",
-            ].join(" ")}
-          >
-            {i < current ? <Check className="h-3.5 w-3.5" /> : i + 1}
-          </div>
-          {i < total - 1 && <div className="h-px w-4 bg-border" />}
-        </li>
-      ))}
+    <ol className="flex flex-wrap items-center gap-x-1 gap-y-2">
+      {steps.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <li key={label} className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => done && onJump(i)}
+              disabled={!done}
+              aria-current={active ? "step" : undefined}
+              className={[
+                "flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-xs transition-colors",
+                done ? "text-foreground hover:bg-surface-raised" : active ? "bg-primary/10 text-primary" : "text-muted-foreground",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                  done ? "bg-success text-white" : active ? "bg-primary text-white" : "bg-surface-raised text-muted-foreground",
+                ].join(" ")}
+              >
+                {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+              </span>
+              <span className={active ? "font-medium" : undefined}>{label}</span>
+            </button>
+            {i < steps.length - 1 && <span className="h-px w-3 bg-border" aria-hidden="true" />}
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -93,22 +137,38 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
     router.push(`/dashboard/events/${id}`);
   }
 
+  const lastNight = startDate ? addDays(startDate, nightCount - 1) : null;
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      <nav className="mb-3 text-xs text-muted-foreground">
+        <Link href="/dashboard/events" className="hover:text-foreground">Events</Link>
+        {" / "}
+        <span className="text-foreground">{source ? "Clone" : "New event"}</span>
+      </nav>
+
       <h1 className="font-display text-2xl font-bold text-foreground">{source ? "Clone event" : "Create event"}</h1>
-      {source && (
-        <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Copy className="h-3.5 w-3.5" />
-          Copying from <strong className="text-foreground">{source.title}</strong> — zones, {sourcePassCount} pass types,
-          add-ons, night themes and policy come across. Sales, lineup and dates don&rsquo;t.
+      {source ? (
+        <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+          <Copy className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            Copying from <strong className="text-foreground">{source.title}</strong> — zones, {sourcePassCount} pass types,
+            add-ons, night themes and policy come across. Sales, lineup and dates don&rsquo;t.
+          </span>
+        </p>
+      ) : (
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Five questions and you have a sellable draft: the nights, the ground, three zones and a starter set of
+          passes. Nothing goes on sale until you publish it yourself.
         </p>
       )}
 
-      <div className="mb-8 mt-6">
-        <StepIndicator current={step} total={STEPS.length} />
-        <p className="mt-2 text-sm font-medium text-foreground">{STEPS[step]}</p>
+      <div className="mb-6 mt-6">
+        <StepIndicator current={step} steps={STEPS} onJump={setStep} />
       </div>
 
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div>
       <div className="min-h-[320px] rounded-xl border border-border bg-surface p-6">
         {step === 0 && (
           <div className="space-y-4">
@@ -143,7 +203,7 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
                 <button
                   onClick={() => setNightCount((n) => Math.max(1, n - 1))}
                   aria-label="Fewer nights"
-                  className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground hover:bg-surface-raised"
+                  className="flex h-11 w-11 items-center justify-center rounded-md border border-border text-lg text-foreground hover:bg-surface-raised"
                 >
                   −
                 </button>
@@ -151,15 +211,15 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
                 <button
                   onClick={() => setNightCount((n) => Math.min(14, n + 1))}
                   aria-label="More nights"
-                  className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground hover:bg-surface-raised"
+                  className="flex h-11 w-11 items-center justify-center rounded-md border border-border text-lg text-foreground hover:bg-surface-raised"
                 >
                   +
                 </button>
               </div>
               {startDate && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Nights 1–{nightCount} will be created, one per day from {startDate}. Gates open 5pm, show 7pm — editable per
-                  night afterwards.
+                  Nights 1–{nightCount} will be created, one per day from {startDate} to {addDays(startDate, nightCount - 1)}.
+                  Gates open 5pm, show 7pm — editable per night afterwards.
                 </p>
               )}
             </Field>
@@ -277,6 +337,51 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
           </Button>
         )}
       </div>
+        </div>
+
+        {/* The draft as it stands. A wizard that hides its own answers behind
+            a Back button makes people guess what they typed three steps ago. */}
+        <aside className="rounded-xl border border-border bg-surface-sunken p-4 lg:sticky lg:top-6">
+          <h2 className="text-sm font-semibold text-foreground">Your draft so far</h2>
+          <dl className="mt-3 space-y-2.5 text-sm">
+            <SummaryLine label="Name" value={title.trim() || null} />
+            <SummaryLine label="Tagline" value={subtitle.trim() || null} />
+            <SummaryLine
+              label="Nights"
+              value={startDate ? `${nightCount} · ${startDate} to ${lastNight}` : null}
+            />
+            <SummaryLine
+              label="Venue"
+              value={venueName.trim() ? `${venueName.trim()}${city.trim() ? `, ${city.trim()}` : ""}` : null}
+            />
+            <SummaryLine label="Capacity" value={totalCapacity ? `${totalCapacity.toLocaleString("en-IN")} per night` : null} />
+            <SummaryLine label="Re-entry" value={REENTRY_LABEL[reentry]} />
+          </dl>
+
+          <div className="mt-4 space-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
+            <p>
+              Created as a <strong className="text-foreground">draft</strong>. Passes, prices and the public page are
+              all editable afterwards.
+            </p>
+            <p>
+              Already ran this season before?{" "}
+              <Link href="/dashboard/events" className="text-primary hover:underline">
+                Clone last year&rsquo;s event
+              </Link>{" "}
+              instead and keep its pass types and pricing.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function SummaryLine({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className={value ? "text-right text-foreground" : "text-right text-placeholder"}>{value ?? "Not set"}</dd>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   passes as allPasses,
 } from "@manhar-garba/mock-data";
 import { usePlatformStore, hasActiveEmergency } from "@/lib/platform-store";
+import { HydrationGate } from "@/components/dashboard/hydration-gate";
 
 /**
  * Platform overview for Manhar Creatives — every tenant on one screen.
@@ -23,6 +24,16 @@ import { usePlatformStore, hasActiveEmergency } from "@/lib/platform-store";
  * among several.
  */
 export default function AdminOverviewPage() {
+  // The emergency banner comes out of a localStorage-persisted store, so it
+  // can only be rendered once the browser has it — see HydrationGate.
+  return (
+    <HydrationGate>
+      <PlatformOverview />
+    </HydrationGate>
+  );
+}
+
+function PlatformOverview() {
   const platform = usePlatformStore();
   const emergencyActive = hasActiveEmergency(platform);
 

@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /register/verify
+Disallow: /register/status
+Disallow: /register/provisioned
+Disallow: /gu/register/verify
+Disallow: /gu/register/status
+Disallow: /gu/register/provisioned
+Disallow: /hi/register/verify
+Disallow: /hi/register/status
+Disallow: /hi/register/provisioned
+
+Sitemap: https://manharevent.com/sitemap.xml

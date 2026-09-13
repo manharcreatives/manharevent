@@ -3,7 +3,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import {
   Button,
-  PassCard,
   QrCode,
   Accordion,
   AccordionItem,
@@ -17,6 +16,7 @@ import {
   passes,
   venue,
 } from "@manhar-garba/mock-data";
+import { bpsToPercent, PLATFORM_FEE_BPS } from "@manhar-garba/domain";
 import {
   Globe,
   WifiOff,
@@ -30,6 +30,15 @@ import {
   Rocket,
   MapPin,
 } from "lucide-react";
+import { localeAlternates } from "@/lib/seo";
+import {
+  graph,
+  jsonLdHtml,
+  organizationNode,
+  websiteNode,
+  softwareApplicationNode,
+  faqPageNode,
+} from "@/lib/structured-data";
 
 export async function generateMetadata({
   params,
@@ -37,8 +46,19 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Landing" });
-  return { description: t("heroSubtitle") };
+  const title = t("metaTitle");
+  const description = t("metaDescription");
+
+  return {
+    // The root layout already sets `title.default`; repeating it here is what
+    // makes the home page's own canonical + hreflang set resolve to "/".
+    title,
+    description,
+    alternates: localeAlternates("/", locale),
+    openGraph: { title, description, url: localeAlternates("/", locale).canonical },
+  };
 }
 
 export default async function LandingPage({
@@ -76,8 +96,28 @@ export default async function LandingPage({
   const sampleZone = zones.find((z) => z.id === samplePass.zone_id);
   const firstNights = eventNights.slice(0, 5);
 
+  // One @graph, not four loose scripts: the FAQ entries below are the same
+  // strings rendered in the accordion, so a rich result can never quote copy
+  // the page does not show.
+  const structuredData = graph([
+    organizationNode(locale),
+    websiteNode(locale, t("metaTitle")),
+    softwareApplicationNode({
+      locale,
+      name: "ManharEvent",
+      description: t("metaDescription"),
+      platformFeePercent: bpsToPercent(PLATFORM_FEE_BPS),
+    }),
+    faqPageNode(faqs),
+  ]);
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdHtml(structuredData) }}
+      />
+
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-background">
         <div
@@ -88,7 +128,7 @@ export default async function LandingPage({
           }}
           aria-hidden="true"
         />
-        <div className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-4 pb-16 pt-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pt-24">
+        <div className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pt-24">
           <div className="text-center lg:text-left">
             <p className="text-sm font-medium uppercase tracking-wide text-primary">{t("heroEyebrow")}</p>
             <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{t("heroTitle")}</h1>
@@ -103,6 +143,10 @@ export default async function LandingPage({
                 <Link href="/pricing">{t("heroSecondaryCta")}</Link>
               </Button>
             </div>
+            {/* The first objection an organizer has is "what will this cost me
+                before I sell anything" — answer it next to the CTA, not three
+                screens down. */}
+            <p className="mt-4 text-sm text-muted-foreground">{t("heroReassurance")}</p>
           </div>
 
           {/* Product visual: a booking-site card and the pass a buyer receives */}
@@ -119,14 +163,19 @@ export default async function LandingPage({
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t("previewSiteLabel")}</p>
               <p className="mt-1 font-display text-lg font-bold text-foreground">{demoEvent.title}</p>
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" /> {venue.name}, {venue.city}
+                <MapPin className="h-3 w-3 shrink-0" /> {venue.name}, {venue.city}
               </p>
               <div className="mt-3 flex gap-1.5 overflow-hidden">
                 {firstNights.map((n) => (
                   <div
                     key={n.id}
                     className="flex h-16 w-14 shrink-0 flex-col justify-between rounded-lg border border-border p-1.5"
-                    style={{ background: `linear-gradient(135deg, ${n.theme_color ?? "#F55B2A"}33, ${n.theme_color ?? "#F55B2A"}88)` }}
+                    style={{
+                      // Night 1 is "White Night" (#F5F5F5) — white-on-white made
+                      // the first tile read as an empty box. The dark scrim runs
+                      // under every theme colour so the label always survives.
+                      backgroundImage: `linear-gradient(160deg, rgba(0,0,0,0.10), rgba(0,0,0,0.55)), linear-gradient(135deg, ${n.theme_color ?? "#F55B2A"}, ${n.theme_color ?? "#F55B2A"})`,
+                    }}
                   >
                     <span className="text-lg font-black leading-none text-white">{n.night_number}</span>
                     <span className="truncate text-[8px] font-medium text-white">{n.theme}</span>
@@ -135,19 +184,36 @@ export default async function LandingPage({
               </div>
             </div>
 
+            {/* A compact pass, composed here rather than with <PassCard>: the
+                card's placeholder QR panel would sit next to the real QR below
+                it, which reads as an unfinished screen on the first thing a
+                prospect sees. */}
             <div className="relative -mt-6 ml-auto w-[78%] rounded-2xl border border-border bg-background p-3 shadow-2xl sm:-mr-6">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t("previewPassLabel")}</p>
-              <PassCard
-                state="valid"
-                holderName="Rina & Kaushik"
-                zoneName={sampleZone?.name ?? "Gold Zone"}
-                zoneColor={sampleZone?.color ?? "#F5B82E"}
-                admits={samplePass.admits}
-                nightRange={`All ${samplePass.night_ids.length} nights`}
-                passCode={samplePass.pass_code}
-              />
-              <div className="mt-3 flex justify-center">
-                <QrCode value={samplePass.qr_payload} size={112} level="M" />
+              <div className="overflow-hidden rounded-xl border border-border">
+                <div className="bg-primary px-3 py-1.5 font-display text-[10px] font-bold uppercase tracking-wider text-white">
+                  ManharEvent
+                </div>
+                <div className="px-3 py-2.5">
+                  <p className="font-display text-base font-bold leading-tight text-foreground">Rina &amp; Kaushik</p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                      style={{ backgroundColor: sampleZone?.color ?? "hsl(var(--primary))" }}
+                    >
+                      {sampleZone?.name ?? "Gold Zone"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Admits {samplePass.admits} · {samplePass.night_ids.length} nights
+                    </span>
+                  </div>
+                  <div className="mt-3 flex justify-center rounded-lg bg-white p-2">
+                    <QrCode value={samplePass.qr_payload} size={104} level="M" />
+                  </div>
+                  <p className="mt-2 text-center font-mono text-[11px] tracking-wider text-muted-foreground">
+                    {samplePass.pass_code}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -158,11 +224,11 @@ export default async function LandingPage({
       <section className="border-y border-border bg-surface/50">
         <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8">
           <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("proofTitle")}</p>
-          <dl className="mt-6 grid grid-cols-2 gap-6 text-center md:grid-cols-4">
+          <dl className="mt-6 grid grid-cols-1 gap-6 text-center sm:grid-cols-2 md:grid-cols-4">
             {proof.map((p) => (
               <div key={p.label}>
-                <dt className="font-display text-3xl font-bold text-foreground">{p.value}</dt>
-                <dd className="mt-1 text-sm text-muted-foreground">{p.label}</dd>
+                <dt className="font-display text-2xl font-bold text-foreground sm:text-3xl">{p.value}</dt>
+                <dd className="mx-auto mt-1 max-w-[28ch] text-sm text-muted-foreground">{p.label}</dd>
               </div>
             ))}
           </dl>
@@ -170,14 +236,14 @@ export default async function LandingPage({
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:px-8">
+      <section id="how-it-works" className="mx-auto max-w-[1200px] scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8">
         <h2 className="text-center font-display text-2xl font-bold text-foreground sm:text-3xl">{t("howTitle")}</h2>
         <ol className="mt-10 grid gap-6 md:grid-cols-3">
           {steps.map(({ icon: Icon, title, desc }, i) => (
             <li key={title} className="relative rounded-xl border border-border bg-surface p-6">
               <span className="absolute right-5 top-5 font-display text-4xl font-black text-border">{i + 1}</span>
               <Icon className="h-8 w-8 text-primary" aria-hidden="true" />
-              <h3 className="mt-4 font-display text-lg font-bold text-foreground">{title}</h3>
+              <h3 className="mt-4 pr-10 font-display text-lg font-bold text-foreground">{title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
             </li>
           ))}
@@ -215,13 +281,13 @@ export default async function LandingPage({
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-[760px] px-4 pb-8 sm:px-6 lg:px-8">
+      <section id="faq" className="mx-auto max-w-[760px] scroll-mt-20 px-4 pb-8 sm:px-6 lg:px-8">
         <h2 className="text-center font-display text-2xl font-bold text-foreground sm:text-3xl">{t("faqTitle")}</h2>
         <Accordion type="single" collapsible className="mt-8 w-full">
           {faqs.map((f, i) => (
             <AccordionItem key={f.q} value={`faq-${i}`}>
-              <AccordionTrigger className="text-left text-sm font-medium">{f.q}</AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground">{f.a}</AccordionContent>
+              <AccordionTrigger className="min-h-[56px] text-left text-sm font-medium">{f.q}</AccordionTrigger>
+              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">{f.a}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
@@ -231,6 +297,7 @@ export default async function LandingPage({
       <section className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center rounded-2xl border border-primary/30 bg-primary/5 px-6 py-12 text-center">
           <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{t("finalCtaTitle")}</h2>
+          <p className="mt-3 max-w-md text-sm text-muted-foreground">{t("finalCtaSubtitle")}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
               <Link href="/register">

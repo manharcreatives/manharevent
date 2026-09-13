@@ -1,0 +1,21 @@
+{
+  "name": "ManharEvent — Garba & Navratri ticketing",
+  "short_name": "ManharEvent",
+  "description": "Run your own ticketed Navratri: a branded booking site, an organizer dashboard, and an offline gate scanner.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "background_color": "#faf9f7",
+  "theme_color": "#e2481c",
+  "categories": ["business", "events", "productivity"],
+  "icons": [
+    { "src": "/brand/manharevent-favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/brand/manharevent-icon-square-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/manharevent-icon-square-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/manharevent-icon-square-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

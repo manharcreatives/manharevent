@@ -2,10 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Delete, ArrowRight, Loader2 } from "lucide-react";
+import { ShieldCheck, Delete, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { gateStaff, gateStaffCode } from "@manhar-garba/mock-data";
 import { loadSession, signIn, SIGN_IN_ERRORS } from "@/lib/session";
 
 type Step = "phone" | "code";
+
+/**
+ * The demo guard: the first person on the organizer's roster.
+ *
+ * The code is *derived* from (phone, event, serial) in
+ * `packages/domain/src/logic/gate-access.ts`, so this is not a hardcoded
+ * back door — it is the same code the dashboard shows on the Team page right
+ * now, computed the same way. The check is real; it just isn't a secret.
+ */
+const DEMO_STAFF = gateStaff[0]!;
+const DEMO_CODE = gateStaffCode(DEMO_STAFF);
+const DEMO_PHONE = DEMO_STAFF.phone.replace(/^\+91/, "");
 
 /**
  * Gate-staff sign-in.
@@ -42,10 +55,10 @@ export default function GateLoginPage() {
     else if (code.length < 6) setCode((c) => c + key);
   }
 
-  function submit() {
+  function attempt(phoneValue: string, codeValue: string) {
     setBusy(true);
     setError(null);
-    const result = signIn(phone, code);
+    const result = signIn(phoneValue, codeValue);
     if (result.ok) {
       router.replace("/scan");
       return;
@@ -56,13 +69,25 @@ export default function GateLoginPage() {
     else setCode("");
   }
 
+  /**
+   * The demo rule: checkable, never a wall. This fills in a real roster number
+   * and its real derived code and runs the same `signIn` everyone else runs — a
+   * wrong code still fails visibly, this one just doesn't need to be remembered.
+   */
+  function useDemoCredentials() {
+    setPhone(DEMO_PHONE);
+    setCode(DEMO_CODE.replace("-", ""));
+    setStep("code");
+    attempt(DEMO_PHONE, DEMO_CODE);
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-background px-5 pb-6 pt-8">
       <header className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
-          <ShieldCheck className="h-6 w-6 text-primary" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15">
+          <ShieldCheck className="h-6 w-6 text-primary" aria-hidden />
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="font-display text-lg font-bold leading-tight text-foreground">
             Gate staff sign-in
           </h1>
@@ -70,6 +95,9 @@ export default function GateLoginPage() {
             Only numbers the organizer added can scan
           </p>
         </div>
+        <span className="shrink-0 rounded-full border border-warning/40 bg-warning/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-warning">
+          Demo
+        </span>
       </header>
 
       <div className="mt-7 flex-1">
@@ -113,7 +141,7 @@ export default function GateLoginPage() {
                 setCode("");
                 setError(null);
               }}
-              className="mt-3 text-sm text-muted-foreground underline underline-offset-4"
+              className="mt-3 min-h-[44px] text-sm text-muted-foreground underline underline-offset-4"
             >
               +91 {phone} — change
             </button>
@@ -128,12 +156,33 @@ export default function GateLoginPage() {
             {error}
           </p>
         )}
+
+        {/* Demo mode: the valid code is on screen. The check above is still the
+            real one — a wrong code fails — but nobody clicking through a demo
+            should ever be stuck at a login waiting for an SMS that has no
+            backend to send it. */}
+        <div className="mt-5 rounded-xl border border-border bg-surface p-3">
+          <p className="text-xs text-muted-foreground">
+            Demo mode — this roster is live. Use{" "}
+            <span className="font-mono font-semibold text-foreground">
+              +91 {DEMO_PHONE}
+            </span>{" "}
+            with code{" "}
+            <span className="font-mono font-semibold text-foreground">{DEMO_CODE}</span>{" "}
+            ({DEMO_STAFF.name}, {DEMO_STAFF.gateLabel}).
+          </p>
+          <button
+            onClick={useDemoCredentials}
+            disabled={busy}
+            className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-primary/50 bg-primary/10 text-sm font-semibold text-primary active:scale-[0.99]"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden />
+            Use demo code
+          </button>
+        </div>
       </div>
 
-      <Keypad
-        mode={step}
-        onPress={step === "phone" ? pressPhone : pressCode}
-      />
+      <Keypad mode={step} onPress={step === "phone" ? pressPhone : pressCode} />
 
       <button
         disabled={busy || (step === "phone" ? !phoneReady : !codeReady)}
@@ -142,17 +191,17 @@ export default function GateLoginPage() {
             setStep("code");
             setError(null);
           } else {
-            submit();
+            attempt(phone, code);
           }
         }}
         className="mt-4 flex h-16 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:bg-surface-raised disabled:text-placeholder"
       >
         {busy ? (
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
         ) : (
           <>
             {step === "phone" ? "Next" : "Start scanning"}
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-5 w-5" aria-hidden />
           </>
         )}
       </button>
@@ -184,11 +233,7 @@ function Keypad({ mode, onPress }: { mode: Step; onPress: (key: string) => void 
     return (
       <div className="grid grid-cols-3 gap-2">
         {DIGIT_ROWS.flat().map((key, i) =>
-          key === "" ? (
-            <div key={i} />
-          ) : (
-            <Key key={i} value={key} onPress={onPress} />
-          )
+          key === "" ? <div key={i} /> : <Key key={i} value={key} onPress={onPress} />
         )}
       </div>
     );
@@ -230,7 +275,11 @@ function Key({
         compact ? "h-12 text-base" : "h-16 text-2xl"
       }`}
     >
-      {isDelete ? <Delete className={compact ? "h-4 w-4" : "h-6 w-6"} /> : value}
+      {isDelete ? (
+        <Delete className={compact ? "h-4 w-4" : "h-6 w-6"} aria-hidden />
+      ) : (
+        value
+      )}
     </button>
   );
 }

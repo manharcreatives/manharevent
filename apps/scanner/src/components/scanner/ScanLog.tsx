@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Search } from "lucide-react";
+import Link from "next/link";
+import { ClipboardList, Download, ScanLine, Search } from "lucide-react";
 import type { SessionLogEntry } from "@/lib/db";
 
 interface Props {
@@ -63,8 +64,9 @@ export function ScanLog({ entries }: Props) {
         </div>
         <button
           onClick={() => exportCsv(entries)}
-          className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
-          aria-label="Export CSV"
+          disabled={entries.length === 0}
+          className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-border px-3 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40"
+          aria-label="Download tonight's scans as CSV"
         >
           <Download className="h-4 w-4" />
           CSV
@@ -72,7 +74,35 @@ export function ScanLog({ entries }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">No scans this session yet.</p>
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border px-6 py-10 text-center">
+          <ClipboardList className="h-8 w-8 text-muted-foreground" aria-hidden />
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              {query ? "No scan matches that code" : "No scans yet tonight"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {query
+                ? "Check the code, or clear the search to see everything."
+                : "Every pass you check tonight shows up here, admitted or not."}
+            </p>
+          </div>
+          {query ? (
+            <button
+              onClick={() => setQuery("")}
+              className="min-h-[44px] rounded-xl border border-border px-5 text-sm font-semibold text-foreground active:bg-surface-raised"
+            >
+              Clear search
+            </button>
+          ) : (
+            <Link
+              href="/scan"
+              className="flex min-h-[44px] items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground active:scale-[0.98]"
+            >
+              <ScanLine className="h-4 w-4" aria-hidden />
+              Start scanning
+            </Link>
+          )}
+        </div>
       ) : (
         <ul className="divide-y divide-border rounded-xl border border-border bg-surface overflow-hidden">
           {filtered.map((e, i) => {

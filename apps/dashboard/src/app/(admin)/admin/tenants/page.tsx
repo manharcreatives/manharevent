@@ -4,7 +4,7 @@ import type { TenantApplicationStatus } from "@manhar-garba/domain";
 import { listApplications } from "@manhar-garba/mock-data";
 import { Badge, EmptyState } from "@manhar-garba/ui";
 
-export const metadata: Metadata = { title: "Tenant applications — Internal Ops" };
+export const metadata: Metadata = { title: "Organizer registrations" };
 
 const STATUS_LABEL: Record<TenantApplicationStatus, string> = {
   draft: "Draft",

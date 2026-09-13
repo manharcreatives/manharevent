@@ -8,6 +8,11 @@ export const PT_SEASON_SOLO_GOLD = "pt-season-solo-gold";
 export const PT_SEASON_SOLO_GENERAL = "pt-season-solo-general";
 export const PT_WEEKEND_COUPLE_GOLD = "pt-weekend-couple-gold";
 export const PT_VIP_SEASON = "pt-vip-season";
+// General is the zone most buyers land on first, so it carries the full ladder:
+// solo, couple, family and a single-night ticket for people testing the water.
+export const PT_SEASON_COUPLE_GENERAL = "pt-season-couple-general";
+export const PT_SEASON_FAMILY_GENERAL = "pt-season-family-general";
+export const PT_SINGLE_NIGHT_GENERAL = "pt-single-night-general";
 
 void tenantCommission; // referenced for context — commission applied at order level
 
@@ -137,6 +142,81 @@ export const passTypes: PassType[] = [
     created_at: "2026-01-15T10:00:00Z",
     updated_at: "2026-09-01T10:00:00Z",
   },
+  {
+    id: PT_SEASON_COUPLE_GENERAL,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID,
+    zone_id: ZONE_GENERAL_ID,
+    code: "SEASON_COUPLE_GENERAL",
+    name: "Season Couple Pass — General",
+    description: "All 9 nights, General Zone. Admits 2.",
+    kind: "season",
+    admits: 2,
+    night_ids: NIGHT_IDS,
+    total_quantity: 3500,
+    sold_quantity: 1950,
+    held_quantity: 40,
+    min_per_order: 1,
+    max_per_order: 4,
+    sale_starts_at: "2026-07-01T00:00:00Z",
+    sale_ends_at: "2026-10-10T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 3,
+    created_at: "2026-01-15T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+  {
+    id: PT_SEASON_FAMILY_GENERAL,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID,
+    zone_id: ZONE_GENERAL_ID,
+    code: "SEASON_FAMILY_GENERAL",
+    name: "Season Family Pass — General",
+    description: "All 9 nights, General Zone. Admits 4 on one QR.",
+    kind: "season",
+    admits: 4,
+    night_ids: NIGHT_IDS,
+    total_quantity: 1200,
+    sold_quantity: 1118,
+    held_quantity: 20,
+    min_per_order: 1,
+    max_per_order: 2,
+    sale_starts_at: "2026-07-01T00:00:00Z",
+    sale_ends_at: "2026-10-10T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 4,
+    created_at: "2026-01-15T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+  {
+    id: PT_SINGLE_NIGHT_GENERAL,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID,
+    zone_id: ZONE_GENERAL_ID,
+    code: "SINGLE_NIGHT_GENERAL",
+    name: "Single Night — General",
+    description: "One night of your choice, General Zone. Admits 1.",
+    kind: "single_night",
+    admits: 1,
+    night_ids: ["night-05"],
+    total_quantity: 6000,
+    sold_quantity: 2400,
+    held_quantity: 100,
+    min_per_order: 1,
+    max_per_order: 10,
+    sale_starts_at: "2026-07-01T00:00:00Z",
+    sale_ends_at: "2026-10-10T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 5,
+    created_at: "2026-01-15T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
 ];
 
 export const priceTiers: PriceTier[] = [
@@ -152,6 +232,11 @@ export const priceTiers: PriceTier[] = [
   { id: "tier-wcg-reg", tenant_id: TENANT_ID, pass_type_id: PT_WEEKEND_COUPLE_GOLD, name: "Regular", price_paise: paise(499900), starts_at: "2026-09-01T00:00:00Z", ends_at: "2026-10-10T23:59:00Z", quantity_cap: null, quantity_sold: 320, sort_order: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
   // VIP Season
   { id: "tier-vip-reg", tenant_id: TENANT_ID, pass_type_id: PT_VIP_SEASON, name: "VIP", price_paise: paise(1499900), starts_at: "2026-07-01T00:00:00Z", ends_at: "2026-10-10T23:59:00Z", quantity_cap: null, quantity_sold: 498, sort_order: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+
+  // Season Couple / Family / Single-night General
+  { id: "tier-scgen-reg", tenant_id: TENANT_ID, pass_type_id: PT_SEASON_COUPLE_GENERAL, name: "Regular", price_paise: paise(449900), starts_at: "2026-07-01T00:00:00Z", ends_at: "2026-10-10T23:59:00Z", quantity_cap: null, quantity_sold: 1950, sort_order: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+  { id: "tier-sfgen-reg", tenant_id: TENANT_ID, pass_type_id: PT_SEASON_FAMILY_GENERAL, name: "Regular", price_paise: paise(799900), starts_at: "2026-07-01T00:00:00Z", ends_at: "2026-10-10T23:59:00Z", quantity_cap: null, quantity_sold: 1118, sort_order: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+  { id: "tier-sngen-reg", tenant_id: TENANT_ID, pass_type_id: PT_SINGLE_NIGHT_GENERAL, name: "Regular", price_paise: paise(59900), starts_at: "2026-07-01T00:00:00Z", ends_at: "2026-10-10T23:59:00Z", quantity_cap: null, quantity_sold: 2400, sort_order: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
 ];
 
 export const addons: AddOn[] = [

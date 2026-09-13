@@ -47,7 +47,8 @@ export default function RegisterProvisionedPage() {
   if (loading || !application) {
     return (
       <div className="mx-auto max-w-[560px] space-y-4 px-4 py-16 sm:px-6">
-        <Skeleton className="h-8 w-2/3" />
+        {/* Real heading, not a grey bar — the page keeps its identity while it loads. */}
+        <h1 className="font-display text-2xl font-bold text-foreground">{t("title")}</h1>
         <Skeleton className="h-24 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />

@@ -30,30 +30,70 @@ import { findEventContent } from "./fixtures/event-content";
 import { groupInvites } from "./fixtures/group-invites";
 
 // ─── In-memory mutation store ─────────────────────────────────────────────────
-// Reset on server restart — expected and fine for mock stage.
+// Reset on server restart — expected and fine for the mock stage.
 //
-// NOTE (2026-09-12, FE-08): apps/marketing and apps/dashboard each run as
-// their own Next.js dev-server process, so this in-memory array is NOT
-// actually shared across the two apps at runtime — it only appears to be
-// "one store" because both import the same fixture module and mutate their
-// own copy. This is an accepted limitation of the mock stage (same one the
-// original FE-02 fixtures had for `_orders`/`_passes`) and gets resolved for
-// real once P-02+ wires a real, shared Postgres/Supabase backend. Until
-// then, manually setting an application's status (per FE-08's acceptance
-// criteria) means editing `tenantApplications` in this fixture directly, or
-// calling these functions from the same running app.
+// Pinned to `globalThis`, deliberately. Next.js bundles a Server Action and the
+// page that renders its result into SEPARATE server bundles, and each bundle
+// gets its own instance of this module. With plain module-level arrays, the
+// order that `createOrder` pushed from a Server Action simply did not exist for
+// the `getOrder` running in the page bundle — so /checkout/<new order> answered
+// 404 and the entire buy flow dead-ended one click after "Continue to Pay".
+// One object on `globalThis` gives every bundle in the process the same store.
+// (This is the same singleton trick a real Prisma/Supabase client needs here,
+// and it is why the fix survives the swap to a real backend.)
+//
+// Still true, and unchanged by this: each app (web, dashboard, marketing,
+// scanner) is its own Node process, so the store is NOT shared BETWEEN apps.
+// A real Postgres at P-02 is what makes that true.
 
-const _orders = [...orders];
-const _orderItems = [...orderItems];
-const _payments = [...payments];
-const _passes = [...passes];
-const _checkIns = [...checkIns];
-const _tenantApplications = [...tenantApplications];
-let _orderSeq = 200;
-// Mutable so a friend joining a group invite shows up on the next read.
-const _passHolders = [...passHolders];
-let _orderItemSeq = 200;
-let _applicationSeq = 100;
+interface MockStore {
+  orders: Order[];
+  orderItems: OrderItem[];
+  payments: Payment[];
+  passes: Pass[];
+  checkIns: CheckIn[];
+  tenantApplications: TenantApplication[];
+  passHolders: PassHolder[];
+  refunds: Refund[];
+  orderSeq: number;
+  orderItemSeq: number;
+  applicationSeq: number;
+  refundSeq: number;
+}
+
+const STORE_KEY = Symbol.for("@manhar-garba/mock-data.store");
+type GlobalWithStore = typeof globalThis & { [STORE_KEY]?: MockStore };
+
+function createStore(): MockStore {
+  return {
+    orders: [...orders],
+    orderItems: [...orderItems],
+    payments: [...payments],
+    passes: [...passes],
+    checkIns: [...checkIns],
+    tenantApplications: [...tenantApplications],
+    // Mutable so a friend joining a group invite shows up on the next read.
+    passHolders: [...passHolders],
+    refunds: [],
+    orderSeq: 200,
+    orderItemSeq: 200,
+    applicationSeq: 100,
+    refundSeq: 0,
+  };
+}
+
+const store: MockStore =
+  ((globalThis as GlobalWithStore)[STORE_KEY] ??= createStore());
+
+// Array aliases: same references as the store, so every mutation below lands in
+// the one shared object without rewriting hundreds of call sites.
+const _orders = store.orders;
+const _orderItems = store.orderItems;
+const _payments = store.payments;
+const _passes = store.passes;
+const _checkIns = store.checkIns;
+const _tenantApplications = store.tenantApplications;
+const _passHolders = store.passHolders;
 
 // ─── Tenant ───────────────────────────────────────────────────────────────────
 
@@ -208,7 +248,7 @@ export async function createOrder(
   input: Pick<Order, "tenant_id" | "event_id" | "buyer_phone" | "buyer_name" | "buyer_email">
 ): Promise<Order> {
   const now = new Date().toISOString();
-  const seq = String(++_orderSeq).padStart(6, "0");
+  const seq = String(++store.orderSeq).padStart(6, "0");
   const order: Order = {
     id: `ord-mock-${seq}`,
     order_number: `MG26-0${seq}`,
@@ -277,7 +317,7 @@ export async function completeMockOrder(
   order.paid_at = now;
   order.updated_at = now;
 
-  const seq = String(++_orderItemSeq).padStart(6, "0");
+  const seq = String(++store.orderItemSeq).padStart(6, "0");
 
   _orderItems.push({
     id: `oi-mock-${seq}`,
@@ -516,7 +556,7 @@ export async function submitApplication(
   input: Pick<TenantApplication, "orgName" | "contactName" | "phone" | "city" | "roughCapacity" | "desiredDomain">
 ): Promise<TenantApplication> {
   const now = new Date().toISOString();
-  const seq = String(++_applicationSeq).padStart(3, "0");
+  const seq = String(++store.applicationSeq).padStart(3, "0");
   const application: TenantApplication = {
     id: `ta-mock-${seq}`,
     status: "submitted",
@@ -580,8 +620,7 @@ export async function rejectApplication(
 // WhatsApp link, and the dashboard's refund queue ran on its own unrelated
 // mock. This gives both sides one list to read and write.
 
-const _refunds: Refund[] = [];
-let _refundSeq = 0;
+const _refunds = store.refunds;
 
 /**
  * Kept as a thin wrapper so existing callers don't change; the tiers themselves
@@ -647,7 +686,7 @@ export async function requestRefund(orderId: string, reason: string): Promise<Re
 
   const now = new Date().toISOString();
   const refund: Refund = {
-    id: `ref-mock-${String(++_refundSeq).padStart(4, "0")}`,
+    id: `ref-mock-${String(++store.refundSeq).padStart(4, "0")}`,
     tenant_id: order.tenant_id,
     order_id: order.id,
     pass_ids: _passes.filter((p) => p.order_id === order.id).map((p) => p.id),

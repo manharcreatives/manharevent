@@ -6,7 +6,7 @@ import { Badge } from "@manhar-garba/ui";
 import { ArrowLeft } from "lucide-react";
 import { TenantApprovalActions } from "@/components/admin/tenant-approval-actions";
 
-export const metadata: Metadata = { title: "Tenant application — Internal Ops" };
+export const metadata: Metadata = { title: "Registration review" };
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",

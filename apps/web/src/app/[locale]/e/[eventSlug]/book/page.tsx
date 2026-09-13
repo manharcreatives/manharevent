@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import {
   getEventBySlug,
   getTenantBySlug,
@@ -10,24 +10,23 @@ import {
   listAddons,
 } from "@manhar-garba/mock-data";
 import { BookClient, type BookZone, type BookPassType, type BookAddon } from "@/components/book/book-client";
+import { localeAlternates } from "@/lib/seo";
+import { currentPricePaise } from "@/lib/pricing";
 
-export const metadata: Metadata = { title: "Book Passes" };
-
-// Picks the price a pass type sells at right now: the price tier whose
-// sale window covers "now", falling back to the earliest-listed tier, then
-// to the cheapest tier on record. Real tiering rules (early-bird cutoffs,
-// etc.) live in packages/mock-data/src/fixtures/pass-types.ts.
-function currentPricePaise(tiers: { price_paise: number; starts_at: string | null; ends_at: string | null; sort_order: number }[]): number {
-  if (tiers.length === 0) return 0;
-  const now = Date.now();
-  const active = tiers.find((tr) => {
-    const afterStart = !tr.starts_at || new Date(tr.starts_at).getTime() <= now;
-    const beforeEnd = !tr.ends_at || new Date(tr.ends_at).getTime() >= now;
-    return afterStart && beforeEnd;
-  });
-  if (active) return active.price_paise;
-  const bySort = [...tiers].sort((a, b) => a.sort_order - b.sort_order)[0];
-  return bySort?.price_paise ?? Math.min(...tiers.map((t) => t.price_paise));
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; eventSlug: string }>;
+}): Promise<Metadata> {
+  const { locale, eventSlug } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "Book" });
+  const event = await getEventBySlug(eventSlug);
+  return {
+    title: t("title"),
+    description: event?.title,
+    alternates: localeAlternates(`/e/${eventSlug}/book`, locale),
+  };
 }
 
 export default async function BookPage({
@@ -56,6 +55,7 @@ export default async function BookPage({
     name: z.name,
     description: z.description,
     color: z.color,
+    capacity: z.capacity,
   }));
 
   const bookPassTypes: BookPassType[] = passTypes.map((pt, i) => {
@@ -68,7 +68,7 @@ export default async function BookPage({
       kind: pt.kind,
       admits: pt.admits,
       nightIds: pt.night_ids,
-      pricePaise: currentPricePaise(tierLists[i] ?? []),
+      pricePaise: currentPricePaise(tierLists[i] ?? []) ?? 0,
       minPerOrder: pt.min_per_order,
       maxPerOrder: pt.max_per_order,
       available,
@@ -85,6 +85,7 @@ export default async function BookPage({
     <BookClient
       eventSlug={event.slug}
       eventId={event.id}
+      eventTitle={event.title}
       tenantId={tenant?.id ?? event.tenant_id}
       zones={bookZones}
       passTypes={bookPassTypes}

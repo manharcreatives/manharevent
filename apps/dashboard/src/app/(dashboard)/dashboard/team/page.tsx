@@ -7,7 +7,8 @@ import { Button, Input, Field, toast } from "@manhar-garba/ui";
 import { GateAccessPanel } from "@/components/dashboard/gate-access-panel";
 import { gates as allGates } from "@manhar-garba/mock-data";
 import { isValidIndianPhone, normalizePhone } from "@manhar-garba/domain";
-import { Plus, Trash2, Shield } from "lucide-react";
+import Link from "next/link";
+import { Plus, Trash2, Shield, DoorOpen, ArrowRight } from "lucide-react";
 
 const ROLE_LABELS: Record<Role, string> = {
   owner: "Owner",
@@ -23,6 +24,7 @@ export default function TeamPage() {
     removeTeamMember,
     currentRole,
     setCurrentRole,
+    scannerCredentials,
   } = useDashboardStore();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -64,10 +66,21 @@ export default function TeamPage() {
     setShowForm(false);
   }
 
+  const gateStaff = team.filter((m) => m.role === "gate_staff");
+  const withAccess = gateStaff.filter((m) =>
+    scannerCredentials.some((c) => c.teamMemberId === m.id && !c.revokedAt)
+  ).length;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-foreground">Team</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">Team</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {team.length} {team.length === 1 ? "person" : "people"} · {gateStaff.length} on the gates.
+            Scanner codes are issued from here.
+          </p>
+        </div>
         <RoleGate allow={["owner"]}>
           <Button size="sm" onClick={() => setShowForm((s) => !s)}>
             <Plus className="mr-1.5 h-4 w-4" />
@@ -75,6 +88,27 @@ export default function TeamPage() {
           </Button>
         </RoleGate>
       </div>
+
+      {/* Issuing lives here; coverage and revocation live on the other page.
+          Neither should leave the organizer wondering where the other is. */}
+      {gateStaff.length > 0 && (
+        <Link
+          href="/dashboard/team/gate-staff"
+          className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 transition-colors hover:border-primary/50"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <DoorOpen className="h-4 w-4 text-primary" />
+          </span>
+          <span className="min-w-0 flex-1 text-sm">
+            <span className="block font-medium text-foreground">Gate coverage</span>
+            <span className="block text-xs text-muted-foreground">
+              {withAccess} of {gateStaff.length} can currently open the scanner — check every gate is staffed and revoke
+              access there.
+            </span>
+          </span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </Link>
+      )}
 
       {/* Role switcher for demo */}
       <div className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
@@ -93,11 +127,11 @@ export default function TeamPage() {
 
       {showForm && (
         <div className="rounded-xl border border-border bg-surface p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name"><Input value={name} onChange={(e) => { setName(e.target.value); setFormError(null); }} placeholder="Kaushik Shah" /></Field>
             <Field label="Mobile number"><Input value={phone} onChange={(e) => { setPhone(e.target.value); setFormError(null); }} placeholder="98765 43210" inputMode="tel" /></Field>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Role">
               <select
                 className="w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-foreground"
@@ -148,9 +182,10 @@ export default function TeamPage() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary shrink-0">
                   {m.name.slice(0, 1)}
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{m.name}</p>
-                  <p className="text-xs text-muted-foreground">{m.phone}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-foreground">{m.name}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{m.phone}</p>
+                  {m.gateLabel && <p className="truncate text-xs text-muted-foreground">{m.gateLabel}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
@@ -160,8 +195,8 @@ export default function TeamPage() {
                   <RoleGate allow={["owner"]}>
                     <button
                       onClick={() => removeTeamMember(m.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                      aria-label="Remove member"
+                      className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-raised hover:text-destructive sm:h-9 sm:w-9"
+                      aria-label={`Remove ${m.name} from the team`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -173,8 +208,8 @@ export default function TeamPage() {
                   (docs/02-product/user-flows.md, Surface 3). */}
               {m.role === "gate_staff" && (
                 <RoleGate allow={["owner"]}>
-                  <div className="ml-12">
-                    <GateAccessPanel member={m} />
+                  <div className="sm:ml-12">
+                    <GateAccessPanel member={m} variant="issue" />
                   </div>
                 </RoleGate>
               )}

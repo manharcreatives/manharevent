@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import Image from "next/image";
 import { cn } from "../lib/utils";
 import { Money } from "./money";
@@ -45,7 +45,7 @@ export function EventCard({ title, city, dateRange, priceFromPaise, imageUrl, hr
       <div className="absolute bottom-0 left-0 right-0 p-3">
         <p className="font-display text-[1.25rem] font-bold leading-tight text-white">{title}</p>
         <p className="mt-0.5 text-xs text-white/70">
-          {city} Â· {dateRange}
+          {city} · {dateRange}
         </p>
       </div>
     </Wrapper>

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Users, ShieldCheck, ShieldOff, DoorOpen, AlertTriangle } from "lucide-react";
-import { Button, EmptyState } from "@manhar-garba/ui";
+import { Users, ShieldCheck, ShieldOff, DoorOpen, AlertTriangle, ArrowRight } from "lucide-react";
+import { Button, EmptyState, StatTile } from "@manhar-garba/ui";
 import { gates as allGates } from "@manhar-garba/mock-data";
 import { useDashboardStore, type TeamMember } from "@/lib/dashboard-store";
 import { GateAccessPanel } from "@/components/dashboard/gate-access-panel";
@@ -13,9 +13,15 @@ import { RoleGate } from "@/components/dashboard/role-gate";
  * organizer actually asks the night before is "is every gate staffed and can
  * they all get into the scanner", not "who is on the team".
  *
- * This used to be a hardcoded list of fake devices with two buttons that did
- * nothing. It now reads the same roster and credentials that `apps/scanner`
- * authenticates against, so what it shows is what will happen at the gate.
+ * It reads the same roster and credentials that `apps/scanner` authenticates
+ * against (`packages/mock-data/src/fixtures/gate-staff.ts` → the derived code
+ * in `packages/domain/src/logic/gate-access.ts`), so what it shows is what will
+ * happen at the gate.
+ *
+ * Division of labour with `/dashboard/team`: a guard is added and handed their
+ * code there; here you see whether the code works and take it away. Both pages
+ * used to carry the identical panel, so the same person had two Revoke buttons
+ * on two screens.
  */
 export default function GateStaffPage() {
   const { team, scannerCredentials } = useDashboardStore();
@@ -36,17 +42,40 @@ export default function GateStaffPage() {
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Gate staff</h1>
+          <nav className="mb-1 text-xs text-muted-foreground">
+            <Link href="/dashboard/team" className="hover:text-foreground">Team</Link>
+            {" / "}
+            <span className="text-foreground">Gate coverage</span>
+          </nav>
+          <h1 className="font-display text-2xl font-bold text-foreground">Gate coverage</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {withAccess.length} of {gateStaff.length} can currently open the scanner.
+            Who is on each gate tonight, and whether their scanner code still works.
           </p>
         </div>
-        <Link href="/dashboard/team">
-          <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" asChild>
+          <Link href="/dashboard/team">
             <Users className="mr-1.5 h-4 w-4" />
-            Add gate staff
-          </Button>
-        </Link>
+            Add or issue access
+          </Link>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label="Gates" value={allGates.length} sub={`${allGates.length - uncoveredGates.length} staffed`} />
+        <StatTile label="Gate staff" value={gateStaff.length} sub="On the roster" />
+        <StatTile
+          label="Can scan"
+          value={withAccess.length}
+          sub={withAccess.length === gateStaff.length ? "Everyone" : `${gateStaff.length - withAccess.length} without a code`}
+          trend={withAccess.length === gateStaff.length ? "up" : "down"}
+          className={withAccess.length === gateStaff.length ? undefined : "border-warning/40"}
+        />
+        <StatTile
+          label="Uncovered"
+          value={uncoveredGates.length}
+          sub={uncoveredGates.length === 0 ? "Every gate staffed" : "Assign someone"}
+          className={uncoveredGates.length === 0 ? undefined : "border-destructive/40"}
+        />
       </div>
 
       {uncoveredGates.length > 0 && (
@@ -56,7 +85,11 @@ export default function GateStaffPage() {
             <span className="font-semibold">
               {uncoveredGates.length} gate{uncoveredGates.length === 1 ? "" : "s"} with nobody posted
             </span>{" "}
-            — {uncoveredGates.map((g) => g.gate.code).join(", ")}. Assign someone before doors open.
+            — {uncoveredGates.map((g) => g.gate.name).join(", ")}. Assign someone before doors open.{" "}
+            <Link href="/dashboard/team" className="font-medium text-primary hover:underline">
+              Post a guard to a gate
+            </Link>
+            .
           </p>
         </div>
       )}
@@ -89,9 +122,18 @@ export default function GateStaffPage() {
               </header>
 
               {staff.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-muted-foreground">
-                  No one is posted here yet.
-                </p>
+                <div className="px-4 py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Nobody is posted here. Passes for this gate&rsquo;s zone cannot be validated until someone is.
+                  </p>
+                  <Link
+                    href="/dashboard/team"
+                    className="mt-1.5 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    Post someone to {gate.name}
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
               ) : (
                 <ul className="divide-y divide-border">
                   {staff.map((m) => (
@@ -150,8 +192,8 @@ function StaffRow({ member }: { member: TeamMember }) {
         )}
       </div>
       <RoleGate allow={["owner"]}>
-        <div className="ml-12">
-          <GateAccessPanel member={member} />
+        <div className="sm:ml-12">
+          <GateAccessPanel member={member} variant="manage" />
         </div>
       </RoleGate>
     </li>

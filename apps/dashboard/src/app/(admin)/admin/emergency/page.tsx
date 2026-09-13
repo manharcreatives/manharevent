@@ -15,6 +15,7 @@ import {
 import { Button, Input, Field, Badge, toast } from "@manhar-garba/ui";
 import { tenant as manharTenant, event as manharEvent } from "@manhar-garba/mock-data";
 import { DangerConfirm } from "@/components/admin/danger-confirm";
+import { HydrationGate } from "@/components/dashboard/hydration-gate";
 import { usePlatformStore, type EmergencyKind } from "@/lib/platform-store";
 
 type DialogId =
@@ -44,6 +45,17 @@ const KIND_LABEL: Record<EmergencyKind, string> = {
  * permanently at the bottom of this page.
  */
 export default function EmergencyPage() {
+  // Everything below reads the persisted platform store, and the audit trail
+  // renders timestamps — both differ between the server's build-time render
+  // and the browser's, which is what threw React #418 here.
+  return (
+    <HydrationGate>
+      <EmergencyControls />
+    </HydrationGate>
+  );
+}
+
+function EmergencyControls() {
   const store = usePlatformStore();
   const [dialog, setDialog] = useState<DialogId>(null);
   const [passCode, setPassCode] = useState("");

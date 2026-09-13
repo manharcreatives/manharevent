@@ -3,67 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  LayoutDashboard, Calendar, DollarSign, Users, Store,
-  Star, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, ShieldCheck } from "lucide-react";
 import { cn } from "@manhar-garba/ui";
 import { useDashboardStore } from "@/lib/dashboard-store";
+import { NAV, isSectionActive } from "./nav-items";
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-  children?: { href: string; label: string }[];
+/** The section a path belongs to, so the right group is open on first paint. */
+function openGroupFor(pathname: string): string | null {
+  return NAV.find((n) => n.children && isSectionActive(n, pathname))?.href ?? null;
 }
-
-const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
-  {
-    href: "/dashboard/events", label: "Events", icon: <Calendar className="h-4 w-4" />,
-    children: [
-      { href: "/dashboard/events", label: "All events" },
-      { href: "/dashboard/events/new", label: "Create / clone" },
-    ],
-  },
-  {
-    href: "/dashboard/finance", label: "Finance", icon: <DollarSign className="h-4 w-4" />,
-    children: [
-      { href: "/dashboard/finance", label: "Overview" },
-      { href: "/dashboard/finance/orders", label: "Orders" },
-      { href: "/dashboard/finance/refunds", label: "Refunds" },
-      { href: "/dashboard/finance/payouts", label: "Payouts" },
-      { href: "/dashboard/finance/gst", label: "GST" },
-    ],
-  },
-  {
-    href: "/dashboard/team", label: "Team", icon: <Users className="h-4 w-4" />,
-    children: [
-      { href: "/dashboard/team", label: "Members" },
-      { href: "/dashboard/team/gate-staff", label: "Gate staff" },
-    ],
-  },
-  { href: "/dashboard/vendors", label: "Vendors", icon: <Store className="h-4 w-4" /> },
-  { href: "/dashboard/sponsors", label: "Sponsors", icon: <Star className="h-4 w-4" /> },
-  {
-    href: "/dashboard/settings/branding", label: "Settings", icon: <Settings className="h-4 w-4" />,
-    children: [
-      { href: "/dashboard/settings/branding", label: "Branding" },
-      { href: "/dashboard/settings/domain", label: "Domain" },
-      { href: "/dashboard/settings/payments", label: "Payments" },
-      { href: "/dashboard/settings/notifications", label: "Notifications" },
-      { href: "/dashboard/settings/audit", label: "Audit log" },
-    ],
-  },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroup, setOpenGroup] = useState<string | null>(() => {
-    const match = NAV.find((n) => n.children && pathname.startsWith(n.href));
-    return match?.href ?? null;
-  });
+  const [openGroup, setOpenGroup] = useState<string | null>(() => openGroupFor(pathname));
+
+  // Follow the route: navigating from Finance to Settings should open Settings
+  // rather than leaving the organizer looking at a collapsed group.
+  useEffect(() => {
+    const next = openGroupFor(pathname);
+    if (next) setOpenGroup(next);
+  }, [pathname]);
 
   // Auto-collapse between 768px and 1024px; re-expand above 1024px
   useEffect(() => {
@@ -74,12 +34,14 @@ export function Sidebar() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  const { events, currentEventId, setCurrentEvent } = useDashboardStore();
+  const events = useDashboardStore((s) => s.events);
+  const currentEventId = useDashboardStore((s) => s.currentEventId);
+  const setCurrentEvent = useDashboardStore((s) => s.setCurrentEvent);
 
   return (
     <aside
       className={cn(
-        "hidden sm:flex h-screen flex-col border-r border-border bg-surface transition-all duration-200",
+        "hidden sm:flex h-screen shrink-0 flex-col border-r border-border bg-surface transition-all duration-200",
         collapsed ? "w-14" : "w-56"
       )}
     >
@@ -87,29 +49,49 @@ export function Sidebar() {
       <div className="flex h-14 items-center gap-2 border-b border-border px-3">
         {!collapsed && (
           <div className="flex flex-1 items-center gap-2 overflow-hidden">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary">
-              <span className="text-xs font-bold text-white">M</span>
-            </div>
-            <select
-              className="flex-1 truncate bg-transparent text-sm font-medium text-foreground focus:outline-none"
-              value={currentEventId}
-              onChange={(e) => setCurrentEvent(e.target.value)}
-              aria-label="Select event"
+            <Link
+              href="/dashboard"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary"
+              aria-label="ManharEvent dashboard home"
             >
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>{ev.title}</option>
-              ))}
-            </select>
+              <span className="text-xs font-bold text-white">M</span>
+            </Link>
+            {/* A native <select> cannot ellipsize its own label, so a long
+                event name used to read "Manhar Navratri 2" — cut mid-word. The
+                name goes in a real element that can truncate; the select sits
+                on top of it, invisible, so the control still works. */}
+            <div className="relative min-w-0 flex-1">
+              <span
+                className="block truncate text-sm font-medium text-foreground"
+                title={events.find((ev) => ev.id === currentEventId)?.title}
+              >
+                {events.find((ev) => ev.id === currentEventId)?.title ?? "Select event"}
+              </span>
+              <select
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                value={currentEventId}
+                onChange={(e) => setCurrentEvent(e.target.value)}
+                aria-label="Select event"
+              >
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>{ev.title}</option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
         {collapsed && (
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+          <Link
+            href="/dashboard"
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-primary"
+            aria-label="ManharEvent dashboard home"
+          >
             <span className="text-xs font-bold text-white">M</span>
-          </div>
+          </Link>
         )}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
+          className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-raised hover:text-foreground"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed
@@ -119,22 +101,25 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2">
+      <nav className="flex-1 overflow-y-auto py-2" aria-label="Dashboard">
         {NAV.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const isActive = isSectionActive(item, pathname);
           const isOpen = openGroup === item.href;
+          const { Icon } = item;
 
           if (item.children) {
             return (
               <div key={item.href}>
                 <button
                   onClick={() => setOpenGroup(isOpen ? null : item.href)}
+                  aria-expanded={isOpen}
+                  title={collapsed ? item.label : undefined}
                   className={cn(
                     "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {item.icon}
+                  <Icon className="h-4 w-4 shrink-0" />
                   {!collapsed && (
                     <>
                       <span className="flex-1 text-left">{item.label}</span>
@@ -170,17 +155,31 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              title={collapsed ? item.label : undefined}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 text-sm transition-colors",
                 isActive ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {item.icon}
+              <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
+
+      {/* Internal ops is a different audience on the same origin — a visible
+          door out of the organizer shell beats typing /admin from memory. */}
+      <div className="border-t border-border p-2">
+        <Link
+          href="/admin"
+          title={collapsed ? "Internal ops" : undefined}
+          className="flex items-center gap-2.5 rounded-md px-1 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ShieldCheck className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Internal ops</span>}
+        </Link>
+      </div>
     </aside>
   );
 }

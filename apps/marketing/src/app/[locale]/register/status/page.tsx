@@ -33,9 +33,16 @@ export default function RegisterStatusPage() {
     return () => { cancelled = true; };
   }, [applicationId]);
 
+  // The heading sits above every branch: a screen reader (and a crawler) should
+  // find one <h1> whether the application is still loading, missing, or ready.
+  const header = (
+    <h1 className="font-display text-2xl font-bold text-foreground">{t("title")}</h1>
+  );
+
   if (loading) {
     return (
       <div className="mx-auto max-w-[480px] space-y-4 px-4 py-16 sm:px-6">
+        {header}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           {t("loading")}
@@ -47,7 +54,8 @@ export default function RegisterStatusPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-[480px] px-4 py-16 sm:px-6">
+      <div className="mx-auto max-w-[480px] space-y-8 px-4 py-16 sm:px-6">
+        {header}
         <ErrorState
           action={<Button onClick={() => router.refresh()}>{t("loading")}</Button>}
         />
@@ -57,7 +65,8 @@ export default function RegisterStatusPage() {
 
   if (!applicationId || !application) {
     return (
-      <div className="mx-auto max-w-[480px] px-4 py-16 sm:px-6">
+      <div className="mx-auto max-w-[480px] space-y-8 px-4 py-16 sm:px-6">
+        {header}
         <EmptyState
           title={t("notFound")}
           action={<Button onClick={() => router.push("/register")}>{t("notFoundCta")}</Button>}
@@ -70,7 +79,7 @@ export default function RegisterStatusPage() {
 
   return (
     <div className="mx-auto max-w-[480px] px-4 py-16 sm:px-6">
-      <h1 className="font-display text-2xl font-bold text-foreground">{t("title")}</h1>
+      {header}
 
       <div className="mt-8 rounded-xl border border-border bg-surface p-6 text-center">
         {(application.status === "submitted" || application.status === "under_review") && (

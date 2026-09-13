@@ -24,19 +24,21 @@ export async function SiteFooter() {
             <p className="mt-1 text-xs text-muted-foreground">{t("tagline")}</p>
           </div>
 
-          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground" aria-label="Footer navigation">
+          {/* min-h-11 on each link: these were 20px tall, under the 44px touch
+              minimum, and they sit right above the fixed mobile nav. */}
+          <nav className="flex flex-wrap gap-x-6 text-sm text-muted-foreground" aria-label="Footer navigation">
             {/* This used to link to the sign-in page. */}
             <a
               href={`https://wa.me/${(tenant?.support_phone ?? "").replace(/\D/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-foreground"
+              className="inline-flex min-h-11 items-center hover:text-foreground"
             >
               {t("supportWhatsapp")}
             </a>
-            <Link href="/legal/privacy" className="hover:text-foreground">{t("privacyPolicy")}</Link>
-            <Link href="/legal/terms" className="hover:text-foreground">{t("termsOfService")}</Link>
-            <Link href="/legal/refund-policy" className="hover:text-foreground">{t("refundPolicy")}</Link>
+            <Link href="/legal/privacy" className="inline-flex min-h-11 items-center hover:text-foreground">{t("privacyPolicy")}</Link>
+            <Link href="/legal/terms" className="inline-flex min-h-11 items-center hover:text-foreground">{t("termsOfService")}</Link>
+            <Link href="/legal/refund-policy" className="inline-flex min-h-11 items-center hover:text-foreground">{t("refundPolicy")}</Link>
           </nav>
         </div>
 

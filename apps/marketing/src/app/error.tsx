@@ -1,53 +1,64 @@
 "use client";
 
-import { useEffect } from "react";
-import { RotateCw, Home } from "lucide-react";
-import { Button } from "@manhar-garba/ui";
-
-export default function MarketingError({
+/**
+ * Root-level error boundary, for the few routes that live OUTSIDE `[locale]`
+ * (the root not-found, and anything thrown by the pass-through root layout).
+ * Those routes have no <html> above them — `[locale]/layout.tsx` owns the
+ * document now — so this boundary renders its own, exactly like
+ * `app/not-found.tsx` does. The localised, in-chrome boundary that visitors
+ * normally see is `app/[locale]/error.tsx`.
+ */
+export default function RootError({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error(error);
-  }, [error]);
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10 ring-1 ring-destructive/30">
-        <RotateCw className="h-7 w-7 text-destructive" />
-      </div>
-      <h1 className="mt-5 font-display text-2xl font-bold text-foreground">
-        Something went wrong
-      </h1>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        Nothing you submitted was lost. Try again, or write to us and we&rsquo;ll finish your
-        registration by hand.
-      </p>
-      {error.digest && (
-        <p className="mt-3 font-mono text-xs text-placeholder">Reference: {error.digest}</p>
-      )}
-      <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" onClick={reset}>
-          <RotateCw className="mr-2 h-4 w-4" />
-          Try again
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          onClick={() => {
-            // Full document load, not a client transition: the boundary tripped
-            // because some client state is bad, and only a fresh load clears it.
-            window.location.href = "/";
-          }}
-        >
-          <Home className="mr-2 h-4 w-4" />
-          Go to home
-        </Button>
-      </div>
-    </div>
+    <html lang="en">
+      <body
+        style={{
+          margin: 0,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+          background: "#faf9f7",
+          color: "#1a1a1a",
+          padding: 24,
+        }}
+      >
+        <div style={{ textAlign: "center", maxWidth: 420 }}>
+          <h1 style={{ fontSize: 22, margin: "0 0 8px" }}>Something broke on our side</h1>
+          <p style={{ fontSize: 14, color: "#5c5c5c", margin: "0 0 20px", lineHeight: 1.6 }}>
+            Reload the page. If you were mid-registration, your application is saved.
+          </p>
+          {error.digest && (
+            <p style={{ fontSize: 12, color: "#8a8a8a", fontFamily: "monospace" }}>
+              Reference: {error.digest}
+            </p>
+          )}
+          <button
+            onClick={reset}
+            style={{
+              marginTop: 8,
+              minHeight: 44,
+              padding: "0 20px",
+              borderRadius: 10,
+              border: 0,
+              background: "#e2481c",
+              color: "#fff",
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      </body>
+    </html>
   );
 }
