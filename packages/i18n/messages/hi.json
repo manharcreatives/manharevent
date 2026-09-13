@@ -247,7 +247,18 @@
     "passesCount": "{count} पास",
     "activePass": "सक्रिय",
     "refundedPass": "रिफंड हुआ",
-    "transferredPass": "ट्रांसफर हुआ"
+    "transferredPass": "ट्रांसफर हुआ",
+    "gateHint": "गेट पर यह दिखाएं — अनलिमिटेड री-एंट्री",
+    "passNotAdmitted": "यह पास {status} है और इसे प्रवेश नहीं दिया जाएगा।",
+    "saveQr": "QR सेव करें",
+    "fieldPass": "पास",
+    "fieldZone": "ज़ोन",
+    "fieldAdmits": "प्रवेश",
+    "fieldNights": "रातें",
+    "fieldStatus": "स्थिति",
+    "admitsPeople": "{count, plural, one {# व्यक्ति} other {# व्यक्ति}} इस पास पर",
+    "noOrdersDesc": "पास खरीदने के बाद ऑर्डर यहाँ दिखेंगे।",
+    "signInToSeeOrders": "अपने ऑर्डर देखने के लिए साइन इन करें"
   },
   "Auth": {
     "signInTitle": "जारी रखने के लिए साइन इन करें",

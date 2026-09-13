@@ -6,7 +6,7 @@ The click path to show a client, in order, with what to say. About 12 minutes.
 
 ```bash
 pnpm install
-pnpm verify:demo     # 18 checks. If any fail, the demo is broken — fix first.
+pnpm verify:demo     # 22 checks. If any fail, the demo is broken — fix first.
 pnpm dev             # all four apps
 ```
 

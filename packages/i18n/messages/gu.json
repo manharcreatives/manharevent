@@ -247,7 +247,18 @@
     "passesCount": "{count} પાસ",
     "activePass": "સક્રિય",
     "refundedPass": "રિફંડ થયું",
-    "transferredPass": "ટ્રાન્સફર થયું"
+    "transferredPass": "ટ્રાન્સફર થયું",
+    "gateHint": "ગેટ પર આ બતાવો — અનલિમિટેડ રી-એન્ટ્રી",
+    "passNotAdmitted": "આ પાસ {status} છે અને એન્ટ્રી ન કરી શકાય.",
+    "saveQr": "QR સેવ કરો",
+    "fieldPass": "પાસ",
+    "fieldZone": "ઝોન",
+    "fieldAdmits": "પ્રવેશ",
+    "fieldNights": "રાત્રિઓ",
+    "fieldStatus": "સ્ટેટ્સ",
+    "admitsPeople": "{count, plural, one {# વ્યક્તિ} other {# વ્યક્તિઓ}} આ એક પાસ પર",
+    "noOrdersDesc": "પાસ ખરીદ્યા પછી ઓર્ડર અહીં દેખાશે.",
+    "signInToSeeOrders": "ઓર્ડર જોવા માટે સાઇન ઇન કરો"
   },
   "Auth": {
     "signInTitle": "ચાલુ રાખવા માટે સાઇન ઇન કરો",

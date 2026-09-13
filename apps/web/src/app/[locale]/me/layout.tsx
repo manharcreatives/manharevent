@@ -1,12 +1,5 @@
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-
-const ME_NAV = [
-  { href: "/me/passes", label: "My Passes" },
-  { href: "/me/orders", label: "Orders" },
-  { href: "/me/wallet", label: "Wallet" },
-  { href: "/me/refunds", label: "Refunds" },
-];
 
 export default async function MeLayout({
   children,
@@ -17,6 +10,14 @@ export default async function MeLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "Me" });
+
+  const ME_NAV = [
+    { href: "/me/passes", label: t("passes") },
+    { href: "/me/orders", label: t("orders") },
+    { href: "/me/wallet", label: t("wallet") },
+    { href: "/me/refunds", label: t("refunds") },
+  ];
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">

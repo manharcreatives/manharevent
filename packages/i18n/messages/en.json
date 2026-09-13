@@ -140,7 +140,18 @@
     "passesCount": "{count} passes",
     "activePass": "Active",
     "refundedPass": "Refunded",
-    "transferredPass": "Transferred"
+    "transferredPass": "Transferred",
+    "gateHint": "Show this at the gate — re-entry unlimited",
+    "passNotAdmitted": "This pass is {status} and cannot be admitted.",
+    "saveQr": "Save QR",
+    "fieldPass": "Pass",
+    "fieldZone": "Zone",
+    "fieldAdmits": "Admits",
+    "fieldNights": "Nights covered",
+    "fieldStatus": "Status",
+    "admitsPeople": "{count, plural, one {# person} other {# people}} on this one pass",
+    "noOrdersDesc": "Once you buy passes, your orders will appear here.",
+    "signInToSeeOrders": "Sign in to see your orders"
   },
   "Artist": {
     "upcomingEvents": "Upcoming events",

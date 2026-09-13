@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { notFound } from "next/navigation";
 import { PassCard, Button, QrCode, QrDownloadButton } from "@manhar-garba/ui";
 import { Link } from "@/i18n/navigation";
@@ -13,6 +14,9 @@ export default function PassDetailPage({
 }: {
   params: Promise<{ locale: string; passId: string }>;
 }) {
+  const t = useTranslations("Me");
+  const tBook = useTranslations("Book");
+  const tCommon = useTranslations("Common");
   const { passId } = use(params);
   const [pass, setPass] = useState<Pass | null | undefined>(undefined);
 
@@ -21,7 +25,7 @@ export default function PassDetailPage({
   }, [passId]);
 
   if (pass === undefined) {
-    return <p className="p-8 text-sm text-muted-foreground">Loading…</p>;
+    return <p className="p-8 text-sm text-muted-foreground">{tCommon("loading")}</p>;
   }
   if (pass === null) notFound();
 
@@ -34,7 +38,7 @@ export default function PassDetailPage({
       <Button asChild variant="ghost" size="sm" className="-ml-2 mb-6 gap-1">
         <Link href="/me/passes">
           <ChevronLeft className="h-4 w-4" />
-          My Passes
+          {t("passes")}
         </Link>
       </Button>
 
@@ -54,7 +58,7 @@ export default function PassDetailPage({
         zoneName={zone?.name ?? "Zone"}
         zoneColor={zone?.color ?? "#6366f1"}
         admits={pass.admits}
-        nightRange={`${pass.night_ids.length} night${pass.night_ids.length !== 1 ? "s" : ""}`}
+        nightRange={tBook("nightsCovered", { count: pass.night_ids.length })}
         passCode={pass.pass_code}
       />
 
@@ -74,11 +78,11 @@ export default function PassDetailPage({
         {scannable ? (
           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-success" />
-            Show this at the gate — re-entry unlimited
+            {t("gateHint")}
           </p>
         ) : (
           <p className="mt-1.5 text-xs text-destructive">
-            This pass is {pass.status.replace("_", " ")} and will not be admitted.
+            {t("passNotAdmitted", { status: pass.status.replace(/_/g, " ") })}
           </p>
         )}
 
@@ -89,7 +93,7 @@ export default function PassDetailPage({
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-surface-raised"
           >
             <Download className="h-4 w-4" />
-            Save QR
+            {t("saveQr")}
           </QrDownloadButton>
         </div>
       </div>
@@ -97,13 +101,13 @@ export default function PassDetailPage({
       <dl className="mt-6 space-y-2.5 rounded-xl border border-border bg-surface p-4 text-sm">
         {passType && (
           <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">Pass</dt>
+            <dt className="text-muted-foreground">{t("fieldPass")}</dt>
             <dd className="text-right text-foreground">{passType.name}</dd>
           </div>
         )}
         {zone && (
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Zone</dt>
+            <dt className="text-muted-foreground">{t("fieldZone")}</dt>
             <dd className="flex items-center gap-1.5 text-foreground">
               <span
                 className="inline-block h-2 w-2 rounded-full"
@@ -116,22 +120,22 @@ export default function PassDetailPage({
         <div className="flex justify-between">
           <dt className="flex items-center gap-1.5 text-muted-foreground">
             <Users className="h-3.5 w-3.5" />
-            Admits
+            {t("fieldAdmits")}
           </dt>
           <dd className="text-foreground">
-            {pass.admits} {pass.admits === 1 ? "person" : "people"} on this one pass
+            {t("admitsPeople", { count: pass.admits })}
           </dd>
         </div>
         <div className="flex justify-between">
           <dt className="flex items-center gap-1.5 text-muted-foreground">
             <Moon className="h-3.5 w-3.5" />
-            Nights covered
+            {t("fieldNights")}
           </dt>
           <dd className="text-foreground">{pass.night_ids.length}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted-foreground">Status</dt>
-          <dd className="capitalize text-foreground">{pass.status.replace("_", " ")}</dd>
+          <dt className="text-muted-foreground">{t("fieldStatus")}</dt>
+          <dd className="capitalize text-foreground">{pass.status.replace(/_/g, " ")}</dd>
         </div>
       </dl>
     </div>

@@ -209,6 +209,50 @@ GROUP BY p.id, z.name
 
 ---
 
+## Section 11 — Gate-Access Codes (`packages/domain/src/logic/gate-access.ts`)
+
+Added in P-D4 audit pass to give the scanner a stateless, browser-runnable credential check that works across two separate localhost processes. These functions live in `packages/domain` (not `mock-data`) because they are pure logic, not data storage.
+
+| Function | Current (demo) | Real replacement | Phase |
+|---|---|---|---|
+| `issueGateCode({ phone, eventId, serial })` | FNV-1a hash of `(SIGNING_SECRET, phone, eventId, serial)` → 6-char code. Secret ships in the client bundle — anyone who reads the bundle can mint codes. | Becomes a **server action** that inserts a row into `scanner_login_codes (id, team_member_id, event_id, code_hash, serial, issued_at, revoked_at)`. The plaintext code is returned once for display; only the HMAC-SHA256 hash is stored. | P-12 |
+| `verifyGateCode(phone, code, eventId, maxSerial)` | Re-derives the code client-side for serials 1…maxSerial and compares — no revocation check possible. | Becomes a DB lookup: `SELECT id FROM scanner_login_codes WHERE code_hash = hmac(code, key, 'sha256') AND event_id = $eventId AND revoked_at IS NULL` (plus a `team_members.phone` join for the phone check). | P-12 |
+
+**Note:** The function signatures and call sites (`apps/scanner/src/app/login/page.tsx`) do not change. Only the bodies move behind the server. See §6a for the `scanner_login_codes` table that backs this.
+
+---
+
+## Section 12 — Fee Computation (`packages/domain/src/logic/fees.ts`)
+
+Single source of truth for all fee arithmetic. **Never inline these percentages anywhere else** — every component that needs a fee breakdown must call `computeFees`.
+
+| Constant | Current value | Real source | Phase |
+|---|---|---|---|
+| `PLATFORM_FEE_BPS` | `200` (2%) | `tenants.platform_fee_bps` (per-tenant, negotiated at onboarding) | P-05 |
+| `GATEWAY_FEE_BPS` | `200` (2%) | Razorpay's published rate; can be stored in `platform_config` for easy updating | P-09 |
+| `GST_BPS` | `1800` (18%) | Statutory — hardcode is fine, but store in `platform_config` for auditability | P-09 |
+
+**Wire-up:** In production, `computeFees(subtotalPaise, tenantId)` will fetch `platform_fee_bps` from `tenants` via a cached server call before computing. The function signature does not change — add `tenantId` as an optional parameter and fall back to the hardcoded default when it is absent (backwards-compatible for tests and mock usage).
+
+---
+
+## Section 13 — Refund Functions (`packages/mock-data/src/repo.ts`)
+
+Added in P-D1 audit pass. These are new functions not present in the original handoff document.
+
+| Function | Current (mock) | Real replacement | Phase |
+|---|---|---|---|
+| `getZoneFromPrice(eventId, zoneId)` | Returns the cheapest `PassType.price_paise` for this zone from the in-memory array | `supabase.from('pass_types').select('price_paise').eq('zone_id', zoneId).order('price_paise').limit(1).single()` | P-06 |
+| `quoteRefund(orderId)` | Computes `daysBefore` from the first night's date vs `Date.now()`, applies `refundPercentFor()` tiers, returns `{ daysBefore, percent, amountPaise, eligible }` | `supabase.rpc('quote_refund', { p_order_id: orderId })` — PostgreSQL function that does the same arithmetic server-side so the result is tamper-proof | P-15 |
+| `requestRefund(orderId, reason)` | Creates a `Refund` row in the in-memory `_refunds` array | `supabase.rpc('request_refund', { p_order_id: orderId, p_reason: reason })` — the RPC must atomically check eligibility, insert the refund row, set passes to `refund_pending`, and notify the organizer | P-15 |
+| `listRefundsByPhone(phone)` | Filters `_refunds` by the buyer phone on each order | `supabase.from('refunds').select('*').eq('requested_by', phone).order('requested_at', {ascending: false})` | P-15 |
+| `listPendingRefunds()` | Filters `_refunds` where `status === 'requested'` | `supabase.from('refunds').select('*, orders(order_number, total_paise), tenants(name)').eq('status', 'requested').order('requested_at')` — dashboard finance/refunds uses this | P-15 |
+| `refundPercentForDaysBefore(daysBefore)` | Pure function — tiered percentage (see `logic/fees.ts`). No swap needed. | Keep as pure logic in `packages/domain`; the RPC calls it server-side via a matching PL/pgSQL `refund_tier(days_before)` function. | P-15 |
+
+**Consuming UIs:** `apps/web/src/app/[locale]/me/refunds` (buyer) + `apps/dashboard/src/app/(dashboard)/dashboard/finance/refunds` (organizer). Both call through `"use server"` action wrappers — those wrappers are the only files that change when mock bodies are swapped.
+
+---
+
 ## Decision criteria — when to do the swap
 
 The UI is identical whether data comes from mock or Supabase. The swap is mechanical, not architectural. Suggested order:
