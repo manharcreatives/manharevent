@@ -200,7 +200,7 @@ export default function ScanPage() {
         />
       )}
 
-      <GateIdentityBar />
+      <GateIdentityBar nightLabel={settings.night_label} />
 
       {/* Status bar */}
       <SyncStatusBar

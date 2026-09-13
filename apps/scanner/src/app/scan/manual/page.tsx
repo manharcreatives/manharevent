@@ -15,6 +15,7 @@ import type { ScanManifestEntry } from "@manhar-garba/mock-data";
 import type { ScannerSettings } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import { useGateSession } from "@/components/scanner/GateSessionGuard";
+import { ModeToggle } from "@/components/scanner/ModeToggle";
 
 export default function ManualPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function ManualPage() {
   const [settings, setSettings] = useState<ScannerSettings>(DEFAULT_SETTINGS);
   const [manifest, setManifest] = useState<ScanManifestEntry[]>([]);
   const [result, setResult] = useState<ValidationResult | null>(null);
-  const [mode] = useState<"in" | "out">("in");
+  const [mode, setMode] = useState<"in" | "out">("in");
 
   useEffect(() => {
     Promise.all([loadSettings(), getManifest()]).then(([s, m]) => {
@@ -76,7 +77,8 @@ export default function ManualPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-semibold text-foreground">Manual code entry</h1>
+        <h1 className="flex-1 text-base font-semibold text-foreground">Manual code entry</h1>
+        <ModeToggle mode={mode} onChange={setMode} />
       </div>
 
       {/* Result overlay */}

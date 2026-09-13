@@ -14,7 +14,7 @@ import { useGateSession } from "./GateSessionGuard";
  * supervisor walking the line can check the right person is on the right gate
  * without touching anything.
  */
-export function GateIdentityBar() {
+export function GateIdentityBar({ nightLabel }: { nightLabel?: string } = {}) {
   const session = useGateSession();
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -32,7 +32,10 @@ export function GateIdentityBar() {
       <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1 leading-tight">
         <p className="truncate text-sm font-semibold text-foreground">{session.staffName}</p>
-        <p className="truncate text-xs text-muted-foreground">{session.gateLabel}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {session.gateLabel}
+          {nightLabel && <span className="ml-1.5 text-muted-foreground/70">· {nightLabel}</span>}
+        </p>
       </div>
 
       {confirming ? (
