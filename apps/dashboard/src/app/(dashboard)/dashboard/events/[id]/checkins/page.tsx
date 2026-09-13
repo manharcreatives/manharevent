@@ -1,6 +1,7 @@
 "use client";
 
-import { useDashboardStore } from "@/lib/dashboard-store";
+import { useEventScope } from "@/lib/use-event";
+import { downloadCsv, todayStamp } from "@/lib/export";
 import { DataTable } from "@manhar-garba/ui";
 import { Download } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -24,13 +25,34 @@ const COLUMNS: ColumnDef<CheckIn>[] = [
 ];
 
 export default function CheckinsPage() {
-  const { checkIns } = useDashboardStore();
+  const { event, checkIns, gates, zones } = useEventScope();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-xl font-bold text-foreground">Check-in Log</h1>
-        <button className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <button
+          onClick={() =>
+            downloadCsv(
+              `${event?.slug ?? "event"}-checkins-${todayStamp()}`,
+              ["Scanned at", "Pass", "Night", "Direction", "Result", "Reason", "Gate", "Zone", "Scanned by", "Device"],
+              checkIns.map((c) => [
+                c.scanned_at,
+                c.pass_id,
+                c.night_id,
+                c.direction,
+                c.result,
+                c.denied_reason,
+                gates.find((g) => g.id === c.gate_id)?.name ?? c.gate_id,
+                zones.find((z) => z.id === c.zone_id)?.name ?? c.zone_id,
+                c.scanned_by,
+                c.device_id,
+              ])
+            )
+          }
+          disabled={checkIns.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+        >
           <Download className="h-4 w-4" />
           Export CSV
         </button>

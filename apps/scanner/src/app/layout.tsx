@@ -4,9 +4,14 @@ import { ThemeProvider, themeScript, Toaster } from "@manhar-garba/ui";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Manharevents Scanner",
+  title: "ManharEvent Scanner",
   description: "Gate scanner PWA — scan passes, offline-first",
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/brand/manharevent-favicon-32.png", sizes: "32x32", type: "image/png" }],
+    // iOS ignores SVG touch icons, which left a blank square on the home screen.
+    apple: [{ url: "/brand/manharevent-icon-square-192.png", sizes: "192x192" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -31,7 +36,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
       <body className="bg-background text-foreground font-sans antialiased overscroll-none">
         <ThemeProvider>

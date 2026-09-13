@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getTenantBySlug } from "@manhar-garba/mock-data";
+import { Link } from "@/i18n/navigation";
 
 // See privacy/page.tsx's file-level comment — same rationale applies here:
 // server component, English-only starter legal content pending real
@@ -44,16 +45,16 @@ export default async function TermsOfServicePage() {
         <section>
           <h2 className="font-display text-lg font-semibold text-foreground">2. Fees</h2>
           <p className="mt-2">
-            Every checkout shows the base price, ManharEvent's platform fee, and the payment gateway's processing
-            fee as three separate line items, plus applicable GST — never bundled into one hidden "convenience fee".
+            Every checkout shows the base price, ManharEvent&rsquo;s platform fee, and the payment gateway&rsquo;s processing
+            fee as three separate line items, plus applicable GST — never bundled into one hidden &ldquo;convenience fee&rdquo;.
           </p>
         </section>
 
         <section>
           <h2 className="font-display text-lg font-semibold text-foreground">3. Entry conditions</h2>
           <p className="mt-2">
-            Entry is subject to the organizer's own dress code, re-entry policy, and venue rules for each event, shown
-            on that event's page. The organizer or their gate staff may deny entry for a pass that fails validation,
+            Entry is subject to the organizer&rsquo;s own dress code, re-entry policy, and venue rules for each event, shown
+            on that event&rsquo;s page. The organizer or their gate staff may deny entry for a pass that fails validation,
             has already been used for the night, or is flagged as refunded, cancelled, or blocked.
           </p>
         </section>
@@ -61,8 +62,8 @@ export default async function TermsOfServicePage() {
         <section>
           <h2 className="font-display text-lg font-semibold text-foreground">4. Refunds</h2>
           <p className="mt-2">
-            Refunds are handled under the event's own refund policy — see our{" "}
-            <a href="/legal/refund-policy" className="underline">Refund Policy</a>.
+            Refunds are handled under the event&rsquo;s own refund policy — see our{" "}
+            <Link href="/legal/refund-policy" className="underline">Refund Policy</Link>.
           </p>
         </section>
 
@@ -70,7 +71,7 @@ export default async function TermsOfServicePage() {
           <h2 className="font-display text-lg font-semibold text-foreground">5. Liability</h2>
           <p className="mt-2">
             ManharEvent is the ticketing platform; each event is organized, staffed, and run by its own independent
-            organizer, who is responsible for the event itself. ManharEvent's role is limited to ticket sale,
+            organizer, who is responsible for the event itself. ManharEvent&rsquo;s role is limited to ticket sale,
             delivery, and gate validation.
           </p>
         </section>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
-import { getOrder, listPassesForOrder } from "@manhar-garba/mock-data";
+import { getOrder, getEvent, listPassesForOrder, listZones } from "@manhar-garba/mock-data";
 import { OrderStatusClient } from "@/components/checkout/order-status-client";
 
 export const metadata: Metadata = { title: "Booking confirmed" };
@@ -17,7 +17,18 @@ export default async function CheckoutStatusPage({
   const order = await getOrder(orderId);
   if (!order) notFound();
 
-  const passes = await listPassesForOrder(orderId);
+  const [passes, event, zones] = await Promise.all([
+    listPassesForOrder(orderId),
+    getEvent(order.event_id),
+    listZones(order.event_id),
+  ]);
 
-  return <OrderStatusClient order={order} passes={passes} />;
+  return (
+    <OrderStatusClient
+      order={order}
+      passes={passes}
+      eventSlug={event?.slug ?? null}
+      zones={Object.fromEntries(zones.map((z) => [z.id, { name: z.name, color: z.color }]))}
+    />
+  );
 }

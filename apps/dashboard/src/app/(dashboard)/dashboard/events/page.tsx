@@ -46,9 +46,14 @@ export default function EventsPage() {
                   <p className="text-sm text-muted-foreground">{ev.subtitle}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <button className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-foreground" title="Clone event">
+                  <Link
+                    href={`/dashboard/events/new?clone=${ev.id}`}
+                    className="rounded-lg border border-border p-1.5 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                    title="Clone for next season"
+                    aria-label={`Clone ${ev.title}`}
+                  >
                     <Copy className="h-4 w-4" />
-                  </button>
+                  </Link>
                   <Button asChild size="sm" variant="ghost">
                     <Link href={`/dashboard/events/${ev.id}`}>
                       Manage <ArrowRight className="ml-1 h-3.5 w-3.5" />

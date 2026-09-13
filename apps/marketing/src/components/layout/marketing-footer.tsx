@@ -2,6 +2,8 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 
+const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
+
 export async function MarketingFooter() {
   const t = await getTranslations("Common");
   const tNav = await getTranslations("MarketingNav");
@@ -28,6 +30,10 @@ export async function MarketingFooter() {
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground" aria-label="Footer navigation">
             <Link href="/pricing" className="hover:text-foreground">{tNav("pricing")}</Link>
             <Link href="/register" className="hover:text-foreground">{tNav("registerCta")}</Link>
+            {/* The legal pages live on the booking site and apply to every organizer on ManharEvent. */}
+            <a href={`${WEB_URL}/en/legal/terms`} className="hover:text-foreground">{t("termsOfService")}</a>
+            <a href={`${WEB_URL}/en/legal/privacy`} className="hover:text-foreground">{t("privacyPolicy")}</a>
+            <a href={`${WEB_URL}/en/legal/refund-policy`} className="hover:text-foreground">{t("refundPolicy")}</a>
           </nav>
         </div>
 

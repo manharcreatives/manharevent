@@ -20,6 +20,8 @@ export interface QueueEntry {
   night_id: string;
   scanned_at: string;
   device_id: string;
+  /** Gate-staff member who was signed in when this was scanned. */
+  staff_id?: string;
   synced: boolean;
 }
 

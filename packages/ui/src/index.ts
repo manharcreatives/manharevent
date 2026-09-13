@@ -10,7 +10,11 @@ export { themeScript } from "./theme/theme-script";
 export { inter, bricolage, jetbrains, notoGujarati, notoDevanagari } from "./fonts";
 
 // shadcn ui primitives
-export { Button, buttonVariants } from "./components/ui/button";
+export { Button } from "./components/ui/button";
+// Server-safe: lives outside the "use client" button module so 404/error pages
+// and other server components can style a <Link> as a button.
+export { buttonVariants } from "./components/ui/button-variants";
+export type { ButtonVariantProps } from "./components/ui/button-variants";
 export type { ButtonProps } from "./components/ui/button";
 export { Input } from "./components/ui/input";
 export { Label } from "./components/ui/label";
@@ -51,6 +55,7 @@ export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "./compon
 export { Slider } from "./components/ui/slider";
 export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "./components/ui/input-otp";
 export { Toaster } from "./components/ui/sonner";
+export { toast } from "sonner";
 
 // custom components
 export { Money } from "./components/money";
@@ -67,6 +72,8 @@ export { ConfirmDialog } from "./components/confirm-dialog";
 export { DataTable } from "./components/data-table";
 export { LangSwitcher } from "./components/lang-switcher";
 export { CopyableCode } from "./components/copyable-code";
+export { QrCode, QrDownloadButton } from "./components/qr-code";
+export type { QrCodeProps } from "./components/qr-code";
 
 // special components
 export { EventCard } from "./components/event-card";

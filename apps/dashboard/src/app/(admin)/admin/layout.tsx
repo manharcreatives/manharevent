@@ -17,7 +17,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
           <span className="font-display text-sm font-bold text-foreground">ManharEvent — Internal Ops</span>
           <nav className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/admin/tenants" className="hover:text-foreground">Tenants</Link>
+            <Link href="/admin" className="transition-colors hover:text-foreground">Overview</Link>
+            <Link href="/admin/tenants" className="transition-colors hover:text-foreground">Tenants</Link>
+            <Link href="/admin/emergency" className="transition-colors hover:text-destructive">Emergency</Link>
           </nav>
         </div>
       </header>

@@ -1,6 +1,6 @@
 import { enqueueCheckIn, getPendingQueue, markSynced } from "./db";
 import { getDeviceId } from "./device-id";
-import { recordCheckIn } from "@manhar-garba/mock-data";
+import { recordCheckIn, TENANT_ID, EVENT_ID } from "@manhar-garba/mock-data";
 
 export async function queueCheckIn(
   passId: string,
@@ -8,7 +8,7 @@ export async function queueCheckIn(
   direction: "in" | "out",
   result: "allowed" | "denied",
   deniedReason: string | null,
-  settings: { gate_id: string; zone_id: string; night_id: string }
+  settings: { gate_id: string; zone_id: string; night_id: string; staff_id: string }
 ): Promise<void> {
   const clientUuid = crypto.randomUUID();
   const scannedAt = new Date().toISOString();
@@ -25,6 +25,9 @@ export async function queueCheckIn(
     night_id: settings.night_id,
     scanned_at: scannedAt,
     device_id: getDeviceId(),
+    // Who scanned, not just which phone — a device can be handed over mid-shift,
+    // so the staff id is what makes a disputed scan traceable to a person.
+    staff_id: settings.staff_id,
     synced: false,
   });
 }
@@ -37,8 +40,8 @@ export async function flushQueue(): Promise<number> {
   const ids: number[] = [];
   for (const entry of pending) {
     await recordCheckIn({
-      tenant_id: "t-manhar-ahmedabad-001",
-      event_id: "ev-navratri-2026-ahmedabad",
+      tenant_id: TENANT_ID,
+      event_id: EVENT_ID,
       night_id: entry.night_id,
       pass_id: entry.pass_id,
       pass_holder_id: null,
@@ -47,7 +50,7 @@ export async function flushQueue(): Promise<number> {
       direction: entry.direction,
       result: entry.result === "allowed" ? "allowed" : "denied",
       denied_reason: entry.denied_reason,
-      scanned_by: null,
+      scanned_by: entry.staff_id ?? null,
       device_id: entry.device_id,
       scanned_at: entry.scanned_at,
       synced_at: new Date().toISOString(),

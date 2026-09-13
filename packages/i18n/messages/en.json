@@ -159,7 +159,14 @@
     "submit": "Join group",
     "progress": "{filled} of {total} spots filled",
     "thankYou": "You're in! Check your WhatsApp for your pass.",
-    "expired": "This invite link has expired"
+    "expired": "This invite link has expired",
+    "notFound": "We couldn't find this invite link",
+    "event": "Event",
+    "zone": "Zone",
+    "invitedBy": "Invited by {name}",
+    "joinError": "Couldn't join — the group may already be full.",
+    "invalidPhone": "Enter a valid 10-digit mobile number",
+    "viewEvent": "See the event"
   },
   "Legal": {
     "terms": "Terms of Service",
@@ -222,7 +229,15 @@
     "gatewayFeeTitle": "Payment gateway fee",
     "gatewayFeeDesc": "Razorpay's own transaction fee — separate, unavoidable, and the same no matter which platform you use.",
     "comparisonNote": "Other platforms bundle both into one number so you can't tell what you're actually paying for. We don't.",
-    "cta": "Register your event"
+    "cta": "Register your event",
+    "exampleTitle": "What it looks like on a ₹1,000 pass",
+    "exampleNote": "Both fees are shown to the buyer as separate lines at checkout, exactly as they are here.",
+    "ticketPrice": "Pass price you set",
+    "platformFeeLine": "ManharEvent platform fee ({rate})",
+    "gatewayFeeLine": "Payment gateway fee ({rate})",
+    "gstLine": "GST (18%)",
+    "buyerPays": "Buyer pays",
+    "youReceive": "You receive"
   },
   "Register": {
     "title": "Register your event",

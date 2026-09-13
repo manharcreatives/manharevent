@@ -6,6 +6,9 @@ node_modules
 .next/
 out/
 
+# Build artifacts
+*.tsbuildinfo
+
 # Environment
 .env
 .env.local
@@ -17,6 +20,9 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+dev.log
 
 # IDE
 .vscode/

@@ -25,7 +25,15 @@ export async function SiteFooter() {
           </div>
 
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground" aria-label="Footer navigation">
-            <Link href="/auth/start" className="hover:text-foreground">{t("supportWhatsapp")}</Link>
+            {/* This used to link to the sign-in page. */}
+            <a
+              href={`https://wa.me/${(tenant?.support_phone ?? "").replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground"
+            >
+              {t("supportWhatsapp")}
+            </a>
             <Link href="/legal/privacy" className="hover:text-foreground">{t("privacyPolicy")}</Link>
             <Link href="/legal/terms" className="hover:text-foreground">{t("termsOfService")}</Link>
             <Link href="/legal/refund-policy" className="hover:text-foreground">{t("refundPolicy")}</Link>

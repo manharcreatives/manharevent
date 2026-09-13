@@ -1,12 +1,12 @@
 import { EventWizard } from "@/components/dashboard/event-wizard";
-import { event as mockEvent } from "@manhar-garba/mock-data";
 
-export default function NewEventPage({
+export default async function NewEventPage({
   searchParams,
 }: {
   searchParams: Promise<{ clone?: string }>;
 }) {
-  // Render the wizard; clone param is checked client-side via store
-  void searchParams;
-  return <EventWizard cloneFrom={mockEvent} />;
+  // The source event lives in the organizer's persisted store, which only the
+  // browser can read, so the wizard resolves the id itself.
+  const { clone } = await searchParams;
+  return <EventWizard cloneFromId={clone ?? null} />;
 }

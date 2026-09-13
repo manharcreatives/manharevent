@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useDashboardStore } from "@/lib/dashboard-store";
+import { useEventScope } from "@/lib/use-event";
 import { Button, Input, Field } from "@manhar-garba/ui";
 import { Plus, Gift } from "lucide-react";
 
 export default function CompsPage() {
-  const { comps, passTypes, addCompPass } = useDashboardStore();
+  const { passTypes } = useEventScope();
+  const { comps, addCompPass } = useDashboardStore();
   const [showForm, setShowForm] = useState(false);
   const [holderName, setHolderName] = useState("");
   const [passTypeId, setPassTypeId] = useState(passTypes[0]?.id ?? "");

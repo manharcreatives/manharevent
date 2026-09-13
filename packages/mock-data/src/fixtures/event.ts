@@ -43,7 +43,8 @@ export const event: Event = {
   slug: "manhar-navratri-2026",
   title: "Manhar Navratri 2026",
   subtitle: "Nine nights. Three zones. One ground.",
-  description: null,
+  description:
+    "Nine nights of Garba and Dandiya Raas on the open lawns of Sardar Patel Ground, with a live folk orchestra every night and a new theme and dress code each evening. Passes are sold by zone and by the nights they cover — a Couple pass admits two on one QR code.",
   status: "published",
   starts_on: "2026-10-02",
   ends_on: "2026-10-10",

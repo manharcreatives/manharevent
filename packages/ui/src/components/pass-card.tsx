@@ -46,7 +46,7 @@ export function PassCard({
     >
       {/* header row */}
       <div className="flex items-center justify-between px-4 pt-4">
-        <span className="font-display text-xs font-bold uppercase tracking-widest text-primary">Manharevents</span>
+        <span className="font-display text-xs font-bold uppercase tracking-widest text-primary">ManharEvent</span>
         {nightBadge && (
           <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {nightBadge}

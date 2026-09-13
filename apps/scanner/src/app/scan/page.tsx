@@ -7,6 +7,8 @@ import { ScanResult } from "@manhar-garba/ui";
 import { SyncStatusBar } from "@/components/scanner/SyncStatusBar";
 import { ModeToggle } from "@/components/scanner/ModeToggle";
 import { Onboarding } from "@/components/scanner/Onboarding";
+import { GateIdentityBar } from "@/components/scanner/GateIdentityBar";
+import { useGateSession } from "@/components/scanner/GateSessionGuard";
 import { validateScan } from "@/lib/validate";
 import { getManifest, syncManifest } from "@/lib/manifest";
 import {
@@ -20,8 +22,9 @@ import { playAllowed, playAlreadyIn, playError } from "@/lib/audio";
 import { hapticAllowed, hapticAlreadyIn, hapticError } from "@/lib/haptics";
 import type { ValidationResult } from "@/lib/validate";
 import type { ScanManifestEntry } from "@manhar-garba/mock-data";
+import { gateZones, zones as allZones, gates as allGates } from "@manhar-garba/mock-data";
 import { Keyboard, ClipboardList } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@manhar-garba/ui";
 
 // Dynamically load the camera component (browser-only)
 const ScanViewport = dynamic(
@@ -30,6 +33,8 @@ const ScanViewport = dynamic(
 );
 
 export default function ScanPage() {
+  // Guaranteed non-null: /scan/layout.tsx wraps this in <GateSessionGuard>.
+  const session = useGateSession();
   const [manifest, setManifest] = useState<ScanManifestEntry[]>([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [scanResult, setScanResult] = useState<ValidationResult | null>(null);
@@ -44,8 +49,23 @@ export default function ScanPage() {
     async function init() {
       const s = await loadSettings();
       const deviceId = getDeviceId();
-      if (!s.device_id) await saveSettings({ device_id: deviceId });
-      setSettings({ ...s, device_id: deviceId });
+
+      // The gate this phone scans for comes from who signed in, not from a
+      // device setting — reassigning a guard to another gate is done on the
+      // dashboard, and takes effect the next time they sign in.
+      const gate = allGates.find((g) => g.id === session.gateId);
+      const zoneId = gateZones.find((gz) => gz.gate_id === session.gateId)?.zone_id;
+      const zone = allZones.find((z) => z.id === zoneId);
+      const fromSession: Partial<typeof s> = {
+        gate_id: session.gateId,
+        gate_name: gate?.name ?? session.gateLabel,
+        zone_id: zone?.id ?? s.zone_id,
+        zone_name: zone?.name ?? s.zone_name,
+        zone_color: zone?.color ?? s.zone_color,
+      };
+
+      await saveSettings({ device_id: deviceId, ...fromSession });
+      setSettings({ ...s, ...fromSession, device_id: deviceId });
       if (!s.onboarding_done) setShowOnboarding(true);
 
       const m = await getManifest();
@@ -62,7 +82,7 @@ export default function ScanPage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [session]);
 
   // Poll pending queue depth
   useEffect(() => {
@@ -110,6 +130,7 @@ export default function ScanPage() {
           gate_id: settings.gate_id,
           zone_id: settings.zone_id,
           night_id: settings.night_id,
+          staff_id: session.staffId,
         });
       }
     } else if (result.passCode) {
@@ -119,6 +140,7 @@ export default function ScanPage() {
           gate_id: settings.gate_id,
           zone_id: settings.zone_id,
           night_id: settings.night_id,
+          staff_id: session.staffId,
         });
       }
     }
@@ -177,6 +199,8 @@ export default function ScanPage() {
           onDismiss={dismissResult}
         />
       )}
+
+      <GateIdentityBar />
 
       {/* Status bar */}
       <SyncStatusBar

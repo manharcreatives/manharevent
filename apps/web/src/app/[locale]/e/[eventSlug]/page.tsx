@@ -67,7 +67,7 @@ export default async function EventLandingPage({
 
   const [tenant, venue, zones, nights] = await Promise.all([
     getTenantBySlug("manhar"),
-    getVenue(event.venue_id),
+    event.venue_id ? getVenue(event.venue_id) : Promise.resolve(undefined),
     listZones(event.id),
     listEventNights(event.id),
   ]);
@@ -155,7 +155,7 @@ export default async function EventLandingPage({
       {zones.length > 0 && (
         <section className="mx-auto max-w-[1280px] px-4 py-8 pb-16 sm:px-6 lg:px-8 md:pb-8">
           <h2 className="font-display text-xl font-bold text-foreground">{t("zones")}</h2>
-          <ZoneCardsSection zones={zones} eventSlug={event.slug} />
+          <ZoneCardsSection zones={zones} eventId={event.id} eventSlug={event.slug} />
         </section>
       )}
 

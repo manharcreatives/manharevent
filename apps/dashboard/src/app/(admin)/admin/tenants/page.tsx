@@ -46,7 +46,7 @@ export default async function TenantApplicationsPage({
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
       <h1 className="font-display text-2xl font-bold text-foreground">Organizer registrations</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Review, approve, or reject applications submitted at ManharEvent&apos;s "Register your event" flow.
+        Review, approve, or reject applications submitted at ManharEvent&apos;s &ldquo;Register your event&rdquo; flow.
       </p>
 
       <nav className="mt-4 flex flex-wrap gap-2 border-b border-border pb-3" aria-label="Filter by status">

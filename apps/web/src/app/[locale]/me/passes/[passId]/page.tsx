@@ -2,11 +2,11 @@
 
 import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
-import { PassCard, Button } from "@manhar-garba/ui";
+import { PassCard, Button, QrCode, QrDownloadButton } from "@manhar-garba/ui";
 import { Link } from "@/i18n/navigation";
-import { getPass } from "@manhar-garba/mock-data";
+import { getPass, zones as allZones, passTypes as allPassTypes } from "@manhar-garba/mock-data";
 import type { Pass } from "@manhar-garba/domain";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Download, Users, Moon, ShieldCheck } from "lucide-react";
 
 export default function PassDetailPage({
   params,
@@ -20,8 +20,14 @@ export default function PassDetailPage({
     getPass(passId).then(setPass);
   }, [passId]);
 
-  if (pass === undefined) return <p className="p-8 text-sm text-muted-foreground">Loading…</p>;
+  if (pass === undefined) {
+    return <p className="p-8 text-sm text-muted-foreground">Loading…</p>;
+  }
   if (pass === null) notFound();
+
+  const zone = allZones.find((z) => z.id === pass.zone_id);
+  const passType = allPassTypes.find((pt) => pt.id === pass.pass_type_id);
+  const scannable = pass.status === "active";
 
   return (
     <div className="mx-auto max-w-[480px] px-4 py-8 sm:px-6">
@@ -34,46 +40,98 @@ export default function PassDetailPage({
 
       <PassCard
         state={
-          pass.status === "active" ? "valid"
-          : pass.status === "used_up" ? "used-tonight"
-          : pass.status === "refunded" || pass.status === "cancelled" ? "refunded"
-          : pass.status === "transferred" ? "transferred-away"
-          : "valid"
+          pass.status === "active"
+            ? "valid"
+            : pass.status === "used_up"
+              ? "used-tonight"
+              : pass.status === "refunded" || pass.status === "cancelled"
+                ? "refunded"
+                : pass.status === "transferred"
+                  ? "transferred-away"
+                  : "valid"
         }
         holderName="Guest"
-        zoneName="Zone"
-        zoneColor="#6366f1"
+        zoneName={zone?.name ?? "Zone"}
+        zoneColor={zone?.color ?? "#6366f1"}
         admits={pass.admits}
         nightRange={`${pass.night_ids.length} night${pass.night_ids.length !== 1 ? "s" : ""}`}
         passCode={pass.pass_code}
       />
 
-      {/* QR */}
+      {/*
+        The real, scannable code — this exact string is what the gate scanner
+        decodes and validates, so what's on screen here is what gets someone in.
+      */}
       <div className="mt-6 flex flex-col items-center">
-        <div className="h-48 w-48 rounded-xl border-2 border-primary bg-white p-2">
-          <div
-            className="h-full w-full rounded-lg bg-foreground/90"
-            style={{ backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 3px,white 3px,white 4px),repeating-linear-gradient(90deg,transparent,transparent 3px,white 3px,white 4px)" }}
-            role="img"
-            aria-label="QR code"
-          />
+        <QrCode
+          value={pass.qr_payload}
+          size={208}
+          level="H"
+          caption={pass.pass_code}
+          className={scannable ? "" : "opacity-40 grayscale"}
+        />
+
+        {scannable ? (
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-success" />
+            Show this at the gate — re-entry unlimited
+          </p>
+        ) : (
+          <p className="mt-1.5 text-xs text-destructive">
+            This pass is {pass.status.replace("_", " ")} and will not be admitted.
+          </p>
+        )}
+
+        <div className="mt-4 flex gap-2">
+          <QrDownloadButton
+            value={pass.qr_payload}
+            filename={`${pass.pass_code}.png`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-surface-raised"
+          >
+            <Download className="h-4 w-4" />
+            Save QR
+          </QrDownloadButton>
         </div>
-        <p className="mt-2 font-mono text-sm font-bold text-foreground">{pass.pass_code}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">Show at gate — re-entry unlimited</p>
       </div>
 
-      <dl className="mt-6 space-y-2 rounded-xl border border-border bg-surface p-4 text-sm">
+      <dl className="mt-6 space-y-2.5 rounded-xl border border-border bg-surface p-4 text-sm">
+        {passType && (
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Pass</dt>
+            <dd className="text-right text-foreground">{passType.name}</dd>
+          </div>
+        )}
+        {zone && (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">Zone</dt>
+            <dd className="flex items-center gap-1.5 text-foreground">
+              <span
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: zone.color ?? undefined }}
+              />
+              {zone.name}
+            </dd>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <dt className="flex items-center gap-1.5 text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            Admits
+          </dt>
+          <dd className="text-foreground">
+            {pass.admits} {pass.admits === 1 ? "person" : "people"} on this one pass
+          </dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="flex items-center gap-1.5 text-muted-foreground">
+            <Moon className="h-3.5 w-3.5" />
+            Nights covered
+          </dt>
+          <dd className="text-foreground">{pass.night_ids.length}</dd>
+        </div>
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Status</dt>
           <dd className="capitalize text-foreground">{pass.status.replace("_", " ")}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted-foreground">Admits</dt>
-          <dd className="text-foreground">{pass.admits}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted-foreground">Nights covered</dt>
-          <dd className="text-foreground">{pass.night_ids.length}</dd>
         </div>
       </dl>
     </div>

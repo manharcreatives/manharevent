@@ -6,6 +6,7 @@ import { DataTable, EmptyState, Money } from "@manhar-garba/ui";
 import { Download, ReceiptText } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Order } from "@manhar-garba/domain";
+import { downloadCsv, paiseToRupees, todayStamp } from "@/lib/export";
 
 const STATUSES = ["all", "paid", "pending_payment", "refunded", "cancelled"];
 
@@ -33,9 +34,23 @@ export default function OrdersPage() {
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-xl font-bold text-foreground">Order Ledger</h1>
-        <button className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <button
+          onClick={() =>
+            downloadCsv(
+              `order-ledger-${status}-${todayStamp()}`,
+              ["Order", "Buyer", "Phone", "Status", "Subtotal (INR)", "Discount (INR)", "Fees (INR)", "GST (INR)", "Total (INR)", "Created", "Paid at"],
+              filtered.map((o) => [
+                o.order_number, o.buyer_name, o.buyer_phone, o.status,
+                paiseToRupees(o.subtotal_paise), paiseToRupees(o.discount_paise), paiseToRupees(o.convenience_fee_paise),
+                paiseToRupees(o.gst_paise), paiseToRupees(o.total_paise), o.created_at, o.paid_at,
+              ])
+            )
+          }
+          disabled={filtered.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+        >
           <Download className="h-4 w-4" />
-          Export
+          Export CSV
         </button>
       </div>
 

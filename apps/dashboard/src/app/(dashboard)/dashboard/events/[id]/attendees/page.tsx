@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useDashboardStore } from "@/lib/dashboard-store";
+import { useEventScope } from "@/lib/use-event";
+import { downloadCsv, paiseToRupees, todayStamp } from "@/lib/export";
 import { DataTable, Money } from "@manhar-garba/ui";
 import { Search, Download } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -20,7 +21,7 @@ const COLUMNS: ColumnDef<Order>[] = [
 ];
 
 export default function AttendeesPage() {
-  const { orders } = useDashboardStore();
+  const { event, orders } = useEventScope();
   const [query, setQuery] = useState("");
 
   const filtered = orders.filter(
@@ -34,9 +35,19 @@ export default function AttendeesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-xl font-bold text-foreground">Attendees</h1>
-        <button className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <button
+          onClick={() =>
+            downloadCsv(
+              `${event?.slug ?? "event"}-attendees-${todayStamp()}`,
+              ["Order", "Name", "Phone", "Email", "Status", "Total (INR)", "Paid at"],
+              filtered.map((o) => [o.order_number, o.buyer_name, o.buyer_phone, o.buyer_email, o.status, paiseToRupees(o.total_paise), o.paid_at])
+            )
+          }
+          disabled={filtered.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+        >
           <Download className="h-4 w-4" />
-          Export CSV
+          Export CSV{query ? ` (${filtered.length})` : ""}
         </button>
       </div>
 

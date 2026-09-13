@@ -80,7 +80,22 @@
   },
   "Checkout": {
     "title": "બુકિંગ પૂર્ણ કરો",
-    "payNow": "{amount} ચૂકવો"
+    "payNow": "{amount} ચૂકવો",
+    "orderSummary": "ઓર્ડરનો સારાંશ",
+    "phoneLabel": "મોબાઇલ નંબર",
+    "phonePlaceholder": "+91 98765 43210",
+    "sendOtp": "OTP મોકલો",
+    "otpSent": "{phone} પર OTP મોકલ્યો",
+    "otpLabel": "OTP દાખલ કરો",
+    "otpPlaceholder": "6 અંકનો OTP",
+    "resendOtp": "OTP ફરી મોકલો",
+    "nameLabel": "તમારું નામ",
+    "namePlaceholder": "પૂરું નામ",
+    "continue": "આગળ વધો",
+    "processing": "પ્રક્રિયા ચાલુ છે...",
+    "demoNote": "ડેમો: કોઈપણ 6 અંકનો OTP ચાલશે",
+    "changeNumber": "બદલો",
+    "passHeld": "તમારો પાસ {minutes} મિનિટ માટે રાખવામાં આવ્યો છે"
   },
   "Common": {
     "appName": "ManharEvent",
@@ -137,7 +152,15 @@
     "gatewayFeeTitle": "પેમેન્ટ ગેટવે ફી",
     "gatewayFeeDesc": "Razorpay ની પોતાની ટ્રાન્ઝેક્શન ફી — અલગ, અનિવાર્ય, અને કોઈ પણ પ્લેટફોર્મ પર સરખી.",
     "comparisonNote": "બીજા પ્લેટફોર્મ બંનેને ભેગા કરી એક નંબર બનાવે છે જેથી તમને ખબર જ ન પડે કે તમે ખરેખર શેના પૈસા ચૂકવો છો. અમે એવું નથી કરતા.",
-    "cta": "તમારો ઇવેન્ટ રજિસ્ટર કરો"
+    "cta": "તમારો ઇવેન્ટ રજિસ્ટર કરો",
+    "exampleTitle": "₹1,000 ના પાસ પર કેવું દેખાય છે",
+    "exampleNote": "બંે ફી ગ્રાહકને ચુકવણી વખતે અલગ અલગ લાઇનમાં બતાવવામાં આવે છે, જેમ અહીં છે.",
+    "ticketPrice": "તમે નક્કી કરેલી પાસ કિંમત",
+    "platformFeeLine": "ManharEvent પ્લેટફોર્મ ફી ({rate})",
+    "gatewayFeeLine": "પેમેન્ટ ગેટવે ફી ({rate})",
+    "gstLine": "GST (18%)",
+    "buyerPays": "ગ્રાહક ચૂકવે છે",
+    "youReceive": "તમને મળે છે"
   },
   "Register": {
     "title": "તમારો ઇવેન્ટ રજિસ્ટર કરો",
@@ -271,6 +294,13 @@
     "submit": "ગ્રુપમાં જોડાઓ",
     "progress": "{total} માંથી {filled} જગ્યાઓ ભરાઈ",
     "thankYou": "તમે જોડાઈ ગયા! તમારો પાસ જોવા WhatsApp ચેક કરો.",
-    "expired": "આ આમંત્રણ લિંકની મુદત પૂરી થઈ ગઈ છે"
+    "expired": "આ આમંત્રણ લિંકની મુદત પૂરી થઈ ગઈ છે",
+    "notFound": "આ આમંત્રણ લિંક મળી નથી",
+    "event": "ઇવેન્ટ",
+    "zone": "ઝોન",
+    "invitedBy": "{name} દ્વારા આમંત્રિત",
+    "joinError": "જોડાઈ શકાયું નહીં — ગ્રુપ ભરાઈ ગયું હોઈ શકે.",
+    "invalidPhone": "માન્ય 10 અંકનો મોબાઇલ નંબર દાખલ કરો",
+    "viewEvent": "ઇવેન્ટ જુઓ"
   }
 }

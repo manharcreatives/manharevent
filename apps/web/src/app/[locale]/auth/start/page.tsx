@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button, Input } from "@manhar-garba/ui";
 import { useAuthStore } from "@/lib/auth-store";
+import { normalizePhone, isValidIndianPhone } from "@manhar-garba/domain";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { Phone } from "lucide-react";
@@ -22,14 +23,14 @@ export default function AuthStartPage() {
   const [error, setError] = useState("");
 
   function handleSend() {
-    const cleaned = phoneInput.replace(/\s/g, "");
-    const ten = cleaned.replace(/^\+91/, "");
-    if (!/^\d{10}$/.test(ten)) {
+    // Shared with checkout and the gate scanner's sign-in, so the same number
+    // typed three different ways resolves identically on all three.
+    if (!isValidIndianPhone(phoneInput)) {
       setError("Enter a valid 10-digit Indian mobile number");
       return;
     }
     setError("");
-    setPhone(`+91${ten}`);
+    setPhone(normalizePhone(phoneInput));
     router.push("/auth/verify");
   }
 

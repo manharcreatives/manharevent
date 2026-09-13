@@ -4,6 +4,7 @@ import { useDashboardStore } from "@/lib/dashboard-store";
 import { EventCard, PassCard, Button } from "@manhar-garba/ui";
 import { useState } from "react";
 import { paise } from "@manhar-garba/domain";
+import { passes as seededPasses } from "@manhar-garba/mock-data";
 import { AlertTriangle } from "lucide-react";
 
 function contrastRatio(hex: string): number {
@@ -21,7 +22,22 @@ function wcagAA(hex: string) {
 }
 
 export default function BrandingPage() {
-  const { branding, updateBranding } = useDashboardStore();
+  const { branding, updateBranding, events, currentEventId, venues, zones, passTypes, priceTiers } = useDashboardStore();
+
+  // The preview renders the organizer's own event and a real pass from it, so
+  // what they see here is what their buyers will see — not placeholder names.
+  const event = events.find((e) => e.id === currentEventId) ?? events[0];
+  const venue = venues.find((v) => v.id === event?.venue_id);
+  const eventPassTypes = passTypes.filter((p) => p.event_id === event?.id);
+  const fromPaise = Math.min(
+    ...priceTiers.filter((t) => eventPassTypes.some((p) => p.id === t.pass_type_id)).map((t) => t.price_paise),
+    Number.MAX_SAFE_INTEGER
+  );
+  const samplePassType = eventPassTypes.find((p) => p.admits > 1) ?? eventPassTypes[0];
+  const sampleZone = zones.find((z) => z.id === samplePassType?.zone_id);
+  const samplePass = seededPasses.find((p) => p.pass_type_id === samplePassType?.id);
+  const dateFmt = (iso?: string) =>
+    iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "";
   const [primary, setPrimary] = useState(branding.primaryColor);
   const [accent, setAccent] = useState(branding.accentColor);
 
@@ -100,20 +116,20 @@ export default function BrandingPage() {
             style={{ "--primary": primary, "--accent": accent } as React.CSSProperties}
           >
             <EventCard
-              title="Manhar Navratri 2026"
-              city="Ahmedabad"
-              dateRange="2 Oct – 10 Oct 2026"
-              priceFromPaise={paise(49900)}
+              title={event?.title ?? "Your event"}
+              city={venue?.city ?? ""}
+              dateRange={`${dateFmt(event?.starts_on)} – ${dateFmt(event?.ends_on)}`}
+              priceFromPaise={paise(fromPaise === Number.MAX_SAFE_INTEGER ? 0 : fromPaise)}
               href="#"
             />
             <PassCard
               state="valid"
-              holderName="Rina & Kaushik"
-              zoneName="Gold Zone"
+              holderName="Sample buyer"
+              zoneName={sampleZone?.name ?? "Zone"}
               zoneColor={accent}
-              admits={2}
-              nightRange="All 9 nights"
-              passCode="PASS-7F3K-9021"
+              admits={samplePassType?.admits ?? 1}
+              nightRange={samplePassType ? `${samplePassType.night_ids.length} nights` : "—"}
+              passCode={samplePass?.pass_code ?? "MG26-XXXX-0000"}
             />
           </div>
         </div>

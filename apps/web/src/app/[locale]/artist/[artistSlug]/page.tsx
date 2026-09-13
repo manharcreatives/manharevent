@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
-import { listArtists } from "@manhar-garba/mock-data";
+import { listArtists, TENANT_ID } from "@manhar-garba/mock-data";
 import { Button } from "@manhar-garba/ui";
 import { Link } from "@/i18n/navigation";
 import { ChevronLeft, Instagram, Youtube } from "lucide-react";
@@ -12,10 +12,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string; artistSlug: string }>;
 }): Promise<Metadata> {
   const { artistSlug } = await params;
-  const artists = await listArtists("tenant-manhar-001");
+  const artists = await listArtists(TENANT_ID);
   const artist = artists.find((a) => a.slug === artistSlug);
   if (!artist) return {};
-  return { title: `${artist.name} — Manharevents` };
+  return { title: `${artist.name} — ManharEvent` };
 }
 
 export default async function ArtistPage({
@@ -26,7 +26,7 @@ export default async function ArtistPage({
   const { locale, artistSlug } = await params;
   setRequestLocale(locale);
 
-  const artists = await listArtists("tenant-manhar-001");
+  const artists = await listArtists(TENANT_ID);
   const artist = artists.find((a) => a.slug === artistSlug);
   if (!artist) notFound();
 

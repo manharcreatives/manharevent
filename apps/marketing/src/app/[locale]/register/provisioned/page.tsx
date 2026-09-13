@@ -9,11 +9,13 @@ import { useRegistrationStore } from "@/lib/registration-store";
 import { useRouter } from "@/i18n/navigation";
 import { getApplicationAction } from "@/app/actions/registration";
 
-// Dev-environment links — apps/web and apps/dashboard run as separate
-// Next.js apps in this monorepo. A real deployment would resolve these to
-// the organizer's actual provisioned subdomain instead.
-const WEB_APP_URL = process.env.NEXT_PUBLIC_WEB_APP_URL ?? "http://localhost:3000";
-const DASHBOARD_APP_URL = process.env.NEXT_PUBLIC_DASHBOARD_APP_URL ?? "http://localhost:3001";
+// Each surface is a separate app. In production these resolve to the
+// organizer's own subdomain; locally they fall back to the dev ports. One
+// variable name per app, shared with the other apps' .env.example.
+const WEB_APP_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
+const DASHBOARD_APP_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+const SCANNER_APP_URL = process.env.NEXT_PUBLIC_SCANNER_URL ?? "http://localhost:3002";
+const ROOT_DOMAIN = "manharevent.com";
 
 export default function RegisterProvisionedPage() {
   const t = useTranslations("RegisterProvisioned");
@@ -59,21 +61,29 @@ export default function RegisterProvisionedPage() {
       title: t("websiteTitle"),
       desc: t("websiteDesc"),
       cta: t("websiteCta"),
-      href: `${WEB_APP_URL}?tenant=${application.desiredDomain}`,
+      // The subdomain the organizer asked for, shown as it will be live — the
+      // link itself opens the demo site, which serves the seeded organizer.
+      address: `${application.desiredDomain}.${ROOT_DOMAIN}`,
+      href: `${WEB_APP_URL}/en`,
     },
     {
       icon: LayoutDashboard,
       title: t("adminTitle"),
       desc: t("adminDesc"),
       cta: t("adminCta"),
-      href: DASHBOARD_APP_URL,
+      address: `${application.desiredDomain}.${ROOT_DOMAIN}/dashboard`,
+      href: `${DASHBOARD_APP_URL}/dashboard`,
     },
     {
       icon: ScanLine,
       title: t("scannerTitle"),
       desc: t("scannerDesc"),
       cta: t("scannerCta"),
-      href: `${DASHBOARD_APP_URL}/team/gate-staff`,
+      // This used to point at `/team/gate-staff` on the dashboard, a route that
+      // doesn't exist. Scanner access is issued from the Team page; the gate
+      // phones themselves open the scanner app.
+      address: SCANNER_APP_URL.replace(/^https?:\/\//, ""),
+      href: `${DASHBOARD_APP_URL}/dashboard/team/gate-staff`,
     },
   ];
 
@@ -83,12 +93,13 @@ export default function RegisterProvisionedPage() {
       <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
 
       <div className="mt-8 space-y-4">
-        {links.map(({ icon: Icon, title, desc, cta, href }) => (
+        {links.map(({ icon: Icon, title, desc, cta, href, address }) => (
           <div key={title} className="flex items-start gap-4 rounded-xl border border-border bg-surface p-5">
             <Icon className="mt-0.5 h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
             <div className="flex-1">
               <h2 className="font-display text-base font-bold text-foreground">{title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
+              <p className="mt-1 font-mono text-xs text-foreground">{address}</p>
               <Button asChild size="sm" className="mt-3">
                 <a href={href} target="_blank" rel="noreferrer">{cta}</a>
               </Button>

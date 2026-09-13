@@ -9,7 +9,7 @@ export interface FeeBreakdownLineItem {
   amountPaise: number;
 }
 
-export interface FeeBreakdownProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface FeeBreakdownProps extends React.HTMLAttributes<HTMLDListElement> {
   /** Pass / add-on line items, shown above the fee lines. */
   items: FeeBreakdownLineItem[];
   platformFeeLabel: string;

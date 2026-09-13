@@ -67,7 +67,7 @@ export function TenantApprovalActions({ application }: Props) {
       {isReconsiderable && application.rejectionReason && (
         <p className="mb-3 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-          Previously sent back: "{application.rejectionReason}"
+          Previously sent back: &ldquo;{application.rejectionReason}&rdquo;
         </p>
       )}
 

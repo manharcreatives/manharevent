@@ -29,3 +29,24 @@ export { computePriceBreakdown } from "./logic/price-breakdown";
 
 export type { CapacityStatus } from "./logic/capacity";
 export { getCapacityStatus } from "./logic/capacity";
+
+export type { GateCodeInput } from "./logic/gate-access";
+export {
+  normalizePhone,
+  isValidIndianPhone,
+  issueGateCode,
+  normalizeGateCode,
+  verifyGateCode,
+} from "./logic/gate-access";
+
+export type { FeeBreakdownResult } from "./logic/fees";
+export {
+  PLATFORM_FEE_BPS,
+  GATEWAY_FEE_BPS,
+  GST_BPS,
+  bpsToPercent,
+  computeFees,
+} from "./logic/fees";
+
+export type { RefundTier } from "./logic/refund-policy";
+export { DEFAULT_REFUND_TIERS, refundPercentFor, describeRefundTier } from "./logic/refund-policy";

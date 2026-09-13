@@ -4,8 +4,12 @@ import { ThemeProvider, themeScript, Toaster } from "@manhar-garba/ui";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Manharevents — Dashboard",
+  title: "ManharEvent — Dashboard",
   description: "Organizer dashboard",
+  icons: {
+    icon: [{ url: "/brand/manharevent-favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/brand/manharevent-icon-square-192.png", sizes: "192x192" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

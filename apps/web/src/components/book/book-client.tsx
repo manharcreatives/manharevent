@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Button, Money, ZoneMap, cn } from "@manhar-garba/ui";
 import type { ZoneRegion } from "@manhar-garba/ui";
+import { computeFees } from "@manhar-garba/domain";
 import { useCartStore } from "@/lib/cart-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { createMockOrder } from "@/app/actions/order";
@@ -87,10 +88,14 @@ export function BookClient({ eventSlug, eventId, tenantId, zones, passTypes, add
     .filter((a) => cart.addonIds.includes(a.id))
     .reduce((sum, a) => sum + a.pricePaise, 0);
   const subtotal = cart.pricePaise * cart.quantity + addonsTotal;
-  const platformFee = Math.round(subtotal * 0.01);
-  const gatewayFee = Math.round(subtotal * 0.02);
-  const gst = Math.round((subtotal + platformFee + gatewayFee) * 0.18);
-  const total = subtotal + platformFee + gatewayFee + gst;
+  // Same `computeFees` the checkout page uses — the number quoted here and
+  // the number charged there are the same number, by construction.
+  const {
+    platformFeePaise: platformFee,
+    gatewayFeePaise: gatewayFee,
+    gstPaise: gst,
+    totalPaise: total,
+  } = computeFees(subtotal);
 
   function handleSelectZone(zoneId: string) {
     const zone = zones.find((z) => z.id === zoneId);

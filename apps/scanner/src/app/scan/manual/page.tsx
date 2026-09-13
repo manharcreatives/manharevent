@@ -14,9 +14,11 @@ import type { ValidationResult } from "@/lib/validate";
 import type { ScanManifestEntry } from "@manhar-garba/mock-data";
 import type { ScannerSettings } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
+import { useGateSession } from "@/components/scanner/GateSessionGuard";
 
 export default function ManualPage() {
   const router = useRouter();
+  const session = useGateSession();
   const [settings, setSettings] = useState<ScannerSettings>(DEFAULT_SETTINGS);
   const [manifest, setManifest] = useState<ScanManifestEntry[]>([]);
   const [result, setResult] = useState<ValidationResult | null>(null);
@@ -48,6 +50,7 @@ export default function ManualPage() {
           gate_id: settings.gate_id,
           zone_id: settings.zone_id,
           night_id: settings.night_id,
+          staff_id: session.staffId,
         });
       }
     }

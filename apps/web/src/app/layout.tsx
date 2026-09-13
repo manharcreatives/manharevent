@@ -16,6 +16,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: name, template: `%s | ${name}` },
     description: "Garba & Navratri ticketing — nine nights, one pass.",
+    icons: {
+      icon: [{ url: "/brand/manharevent-favicon-32.png", sizes: "32x32", type: "image/png" }],
+      apple: [{ url: "/brand/manharevent-icon-square-192.png", sizes: "192x192" }],
+    },
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://manharevent.com"),
   };
 }

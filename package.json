@@ -7,11 +7,14 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "verify:demo": "tsx scripts/verify-demo-loop.mts",
+    "smoke": "node scripts/smoke-routes.mjs"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "prettier": "^3.3.0"
+    "prettier": "^3.3.0",
+    "tsx": "^4.23.13",
+    "turbo": "^2.0.0"
   },
   "engines": {
     "node": ">=20",

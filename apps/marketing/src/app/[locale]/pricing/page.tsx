@@ -1,8 +1,20 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { Button } from "@manhar-garba/ui";
+import { Button, Money } from "@manhar-garba/ui";
+import {
+  computeFees,
+  bpsToPercent,
+  PLATFORM_FEE_BPS,
+  GATEWAY_FEE_BPS,
+  paise,
+} from "@manhar-garba/domain";
 import { Landmark, CreditCard } from "lucide-react";
+
+// A ₹1,000 pass, run through the exact same `computeFees` the buyer's
+// checkout uses. Prose alone let an organizer leave this page without ever
+// seeing a number; this makes the promise checkable.
+const EXAMPLE_TICKET_PAISE = paise(100000);
 
 export async function generateMetadata({
   params,
@@ -23,6 +35,7 @@ export default async function PricingPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("Pricing");
+  const example = computeFees(EXAMPLE_TICKET_PAISE);
 
   return (
     <section className="mx-auto max-w-[720px] px-4 py-16 sm:px-6 lg:px-8">
@@ -46,6 +59,54 @@ export default async function PricingPage({
             <p className="mt-1 text-sm text-muted-foreground">{t("gatewayFeeDesc")}</p>
           </div>
         </div>
+      </div>
+
+      {/* Worked example — the same numbers the buyer sees at checkout */}
+      <div className="mt-8 rounded-xl border border-border bg-surface p-5">
+        <h2 className="font-display text-base font-bold text-foreground">{t("exampleTitle")}</h2>
+        <dl className="mt-4 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">{t("ticketPrice")}</dt>
+            <dd className="tabular text-foreground">
+              <Money paise={example.subtotalPaise} />
+            </dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">
+              {t("platformFeeLine", { rate: bpsToPercent(PLATFORM_FEE_BPS) })}
+            </dt>
+            <dd className="tabular text-foreground">
+              <Money paise={example.platformFeePaise} />
+            </dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">
+              {t("gatewayFeeLine", { rate: bpsToPercent(GATEWAY_FEE_BPS) })}
+            </dt>
+            <dd className="tabular text-foreground">
+              <Money paise={example.gatewayFeePaise} />
+            </dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">{t("gstLine")}</dt>
+            <dd className="tabular text-foreground">
+              <Money paise={example.gstPaise} />
+            </dd>
+          </div>
+          <div className="flex justify-between border-t border-border pt-2 font-bold">
+            <dt className="text-foreground">{t("buyerPays")}</dt>
+            <dd className="tabular text-foreground">
+              <Money paise={example.totalPaise} />
+            </dd>
+          </div>
+          <div className="flex justify-between font-bold text-success">
+            <dt>{t("youReceive")}</dt>
+            <dd className="tabular">
+              <Money paise={example.organizerNetPaise} />
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-4 text-xs text-muted-foreground">{t("exampleNote")}</p>
       </div>
 
       <p className="mt-6 rounded-lg bg-surface/60 p-4 text-sm text-muted-foreground">{t("comparisonNote")}</p>

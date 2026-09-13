@@ -13,11 +13,12 @@ import type {
   Tenant, TenantBranding,
   Event, EventNight, Venue, Zone, Gate, Artist, NightLineup,
   PassType, PriceTier, AddOn, PromoCode,
-  Order, OrderItem, Payment,
+  Order, OrderItem, Payment, Refund,
   Pass, PassHolder, CheckIn,
   TenantApplication, TenantApplicationStatus,
+  Paise,
 } from "@manhar-garba/domain";
-import { paise } from "@manhar-garba/domain";
+import { paise, refundPercentFor } from "@manhar-garba/domain";
 
 import { tenant, tenantBranding } from "./fixtures/tenant";
 import { event, eventNights, venue, zones, gates, artists, nightLineup } from "./fixtures/event";
@@ -25,6 +26,8 @@ import { passTypes, priceTiers, addons, promoCodes } from "./fixtures/pass-types
 import { orders, orderItems, payments } from "./fixtures/orders";
 import { passes, passHolders, checkIns } from "./fixtures/passes";
 import { tenantApplications } from "./fixtures/tenant-applications";
+import { findEventContent } from "./fixtures/event-content";
+import { groupInvites } from "./fixtures/group-invites";
 
 // ─── In-memory mutation store ─────────────────────────────────────────────────
 // Reset on server restart — expected and fine for mock stage.
@@ -47,6 +50,8 @@ const _passes = [...passes];
 const _checkIns = [...checkIns];
 const _tenantApplications = [...tenantApplications];
 let _orderSeq = 200;
+// Mutable so a friend joining a group invite shows up on the next read.
+const _passHolders = [...passHolders];
 let _orderItemSeq = 200;
 let _applicationSeq = 100;
 
@@ -132,6 +137,30 @@ export async function listPassTypesForZone(eventId: string, zoneId: string): Pro
 /** FE-07 handoff: supabase.from('price_tiers').select().eq('pass_type_id', passTypeId).order('sort_order') */
 export async function listPriceTiers(passTypeId: string): Promise<PriceTier[]> {
   return priceTiers.filter((t) => t.pass_type_id === passTypeId);
+}
+
+/**
+ * Cheapest live price in a zone, across every pass type in it.
+ *
+ * The public "from ₹X" figures used to be a hardcoded lookup table in
+ * `zone-cards-section.tsx`, which meant the price a visitor saw on the event
+ * page and the price they were charged at checkout came from two different
+ * places and could silently disagree. This makes the price tiers the only
+ * source, so editing a tier in the dashboard moves the public number too.
+ *
+ * Returns `null` when a zone has nothing on sale — the caller should say so
+ * rather than print a misleading ₹0.
+ *
+ * FE-07 handoff: a `min(price_paise)` join across pass_types and price_tiers.
+ */
+export async function getZoneFromPrice(eventId: string, zoneId: string): Promise<Paise | null> {
+  const zonePassTypes = passTypes.filter(
+    (pt) => pt.event_id === eventId && pt.zone_id === zoneId && pt.status === "on_sale"
+  );
+  const prices = zonePassTypes.flatMap((pt) =>
+    priceTiers.filter((t) => t.pass_type_id === pt.id).map((t) => t.price_paise)
+  );
+  return prices.length > 0 ? (Math.min(...prices) as Paise) : null;
 }
 
 /** FE-07 handoff: supabase.from('addons').select().eq('event_id', eventId) */
@@ -338,7 +367,7 @@ export async function listActivePassesForEvent(eventId: string): Promise<Pass[]>
 
 /** FE-07 handoff: supabase.from('pass_holders').select().eq('pass_id', passId) */
 export async function listPassHolders(passId: string): Promise<PassHolder[]> {
-  return passHolders.filter((ph) => ph.pass_id === passId);
+  return _passHolders.filter((ph) => ph.pass_id === passId);
 }
 
 // ─── Check-ins ────────────────────────────────────────────────────────────────
@@ -421,7 +450,7 @@ export interface ScanManifestEntry {
 export async function buildScanManifest(eventId: string, nightId = "night-05"): Promise<ScanManifestEntry[]> {
   const results: ScanManifestEntry[] = [];
   for (const p of _passes.filter((x) => x.event_id === eventId)) {
-    const holders = passHolders.filter((ph) => ph.pass_id === p.id);
+    const holders = _passHolders.filter((ph) => ph.pass_id === p.id);
     const holderName = holders.map((h) => h.full_name).filter(Boolean).join(" & ") || null;
     const zoneMatch = zones.find((z) => z.id === p.zone_id);
     const tonightCount = _checkIns.filter(
@@ -544,4 +573,167 @@ export async function rejectApplication(
   application.decidedAt = now;
   application.updatedAt = now;
   return application;
+}
+
+// ─── Refunds ──────────────────────────────────────────────────────────────
+// No refund fixtures existed: `/me/refunds` was a paragraph of text and a
+// WhatsApp link, and the dashboard's refund queue ran on its own unrelated
+// mock. This gives both sides one list to read and write.
+
+const _refunds: Refund[] = [];
+let _refundSeq = 0;
+
+/**
+ * Kept as a thin wrapper so existing callers don't change; the tiers themselves
+ * live in `packages/domain/src/logic/refund-policy.ts`, shared with the legal
+ * page and the dashboard's policy editor.
+ */
+export function refundPercentForDaysBefore(daysBefore: number): number {
+  return refundPercentFor(daysBefore);
+}
+
+export interface RefundQuote {
+  daysBefore: number;
+  percent: number;
+  amountPaise: Paise;
+  eligible: boolean;
+}
+
+export async function quoteRefund(orderId: string): Promise<RefundQuote | null> {
+  const order = _orders.find((o) => o.id === orderId);
+  if (!order || order.status !== "paid") return null;
+
+  const nights = eventNights
+    .filter((n) => n.event_id === order.event_id)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const firstNight = nights[0];
+  if (!firstNight) return null;
+
+  const msPerDay = 86_400_000;
+  const daysBefore = Math.floor(
+    (new Date(`${firstNight.date}T00:00:00+05:30`).getTime() - Date.now()) / msPerDay
+  );
+  const percent = refundPercentForDaysBefore(daysBefore);
+
+  return {
+    daysBefore,
+    percent,
+    // Refunds are computed on what the buyer paid for the passes, not on the
+    // fees — the gateway keeps its cut on a refunded transaction either way.
+    amountPaise: paise(Math.round(((order.subtotal_paise - order.discount_paise) * percent) / 100)),
+    eligible: percent > 0,
+  };
+}
+
+export async function listRefundsByPhone(phone: string): Promise<Refund[]> {
+  const orderIds = new Set(_orders.filter((o) => o.buyer_phone === phone).map((o) => o.id));
+  return _refunds
+    .filter((r) => orderIds.has(r.order_id))
+    .sort((a, b) => b.requested_at.localeCompare(a.requested_at));
+}
+
+export async function listPendingRefunds(): Promise<Refund[]> {
+  return _refunds.filter((r) => r.status === "requested");
+}
+
+/** FE-07 handoff: supabase.rpc('request_refund', { p_order_id, p_reason }) */
+export async function requestRefund(orderId: string, reason: string): Promise<Refund | null> {
+  const order = _orders.find((o) => o.id === orderId);
+  if (!order) return null;
+  if (_refunds.some((r) => r.order_id === orderId && r.status === "requested")) return null;
+
+  const quote = await quoteRefund(orderId);
+  if (!quote || !quote.eligible) return null;
+
+  const now = new Date().toISOString();
+  const refund: Refund = {
+    id: `ref-mock-${String(++_refundSeq).padStart(4, "0")}`,
+    tenant_id: order.tenant_id,
+    order_id: order.id,
+    pass_ids: _passes.filter((p) => p.order_id === order.id).map((p) => p.id),
+    requested_by: order.buyer_phone,
+    approved_by: null,
+    reason,
+    policy_snapshot: { percent: quote.percent, daysBefore: quote.daysBefore },
+    amount_paise: quote.amountPaise,
+    status: "requested",
+    provider_refund_id: null,
+    requested_at: now,
+    resolved_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+  _refunds.push(refund);
+  return refund;
+}
+
+// ─── Event content ────────────────────────────────────────────────────────
+
+/** FE-07 handoff: supabase.from('event_content').select().eq('event_id', eventId).single() */
+export async function getEventContent(eventId: string) {
+  return findEventContent(eventId) ?? null;
+}
+
+// ─── Group invites ────────────────────────────────────────────────────────
+// A buyer of a Couple or Family pass shares a link; each friend who opens it
+// adds their name and number as one of the pass's holders. Before this the
+// `/g/[code]` page echoed the code back and linked to a hardcoded event.
+
+export interface GroupInviteView {
+  code: string;
+  createdByName: string;
+  expired: boolean;
+  pass: Pass;
+  event: Event;
+  zone: Zone | null;
+  spots: number;
+  holders: PassHolder[];
+}
+
+/** FE-07 handoff: supabase.rpc('get_group_invite', { p_code }) */
+export async function getGroupInvite(code: string): Promise<GroupInviteView | null> {
+  const invite = groupInvites.find((g) => g.code.toUpperCase() === code.toUpperCase());
+  if (!invite) return null;
+  const pass = _passes.find((p) => p.pass_code === invite.passCode);
+  if (!pass) return null;
+  const ev = event.id === pass.event_id ? event : null;
+  if (!ev) return null;
+  return {
+    code: invite.code,
+    createdByName: invite.createdByName,
+    expired: new Date(invite.expiresAt).getTime() < Date.now() || pass.status !== "active",
+    pass,
+    event: ev,
+    zone: zones.find((z) => z.id === pass.zone_id) ?? null,
+    spots: pass.admits,
+    holders: _passHolders.filter((ph) => ph.pass_id === pass.id).sort((a, b) => a.holder_index - b.holder_index),
+  };
+}
+
+export type JoinGroupResult = { ok: true; holderIndex: number } | { ok: false; reason: "not_found" | "expired" | "full" | "already_joined" };
+
+/** FE-07 handoff: supabase.rpc('join_group_invite', { p_code, p_name, p_phone }) */
+export async function joinGroupInvite(code: string, fullName: string, phone: string): Promise<JoinGroupResult> {
+  const view = await getGroupInvite(code);
+  if (!view) return { ok: false, reason: "not_found" };
+  if (view.expired) return { ok: false, reason: "expired" };
+  if (view.holders.some((h) => h.phone === phone)) return { ok: false, reason: "already_joined" };
+  if (view.holders.length >= view.spots) return { ok: false, reason: "full" };
+  const now = new Date().toISOString();
+  const holderIndex = view.holders.length + 1;
+  _passHolders.push({
+    id: `ph-${view.pass.id}-${holderIndex}`,
+    tenant_id: view.pass.tenant_id,
+    pass_id: view.pass.id,
+    holder_index: holderIndex,
+    full_name: fullName,
+    phone,
+    photo_url: null,
+    age_band: "adult",
+    invite_code: view.code,
+    filled_at: now,
+    created_at: now,
+    updated_at: now,
+  });
+  return { ok: true, holderIndex };
 }

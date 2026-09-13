@@ -47,7 +47,7 @@ import {
   type ZoneRegion,
 } from "@manhar-garba/ui";
 import { Inbox } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@manhar-garba/ui";
 
 const ZONES: ZoneRegion[] = [
   { id: "vip", label: "VIP", token: "vip", path: "M 80 40 L 220 40 L 220 120 L 80 120 Z", available: true },

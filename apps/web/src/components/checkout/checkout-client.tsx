@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import type { Order, Pass } from "@manhar-garba/domain";
+import { computeFees, normalizePhone, isValidIndianPhone } from "@manhar-garba/domain";
 import { Button, Input, FeeBreakdown } from "@manhar-garba/ui";
 import { useCartStore } from "@/lib/cart-store";
 import { useAuthStore } from "@/lib/auth-store";
@@ -35,11 +36,14 @@ export function CheckoutClient({ order }: Props) {
   // Two honest, separate fee lines (2026-09-12 pivot) — never bundled into
   // one "convenience fee". Platform fee is ManharEvent's own and kept
   // minimal; gateway fee is Razorpay's pass-through and not ManharEvent's
-  // to set. Same two-line template as Surface 0's /pricing page (FE-08).
-  const platformFee = Math.round(subtotal * 0.01);
-  const gatewayFee = Math.round(subtotal * 0.02);
-  const gst = Math.round((subtotal + platformFee + gatewayFee) * 0.18);
-  const total = subtotal + platformFee + gatewayFee + gst;
+  // to set. The rates live in `computeFees` so that /pricing, the booking
+  // screen, and this page can never quote three different numbers.
+  const {
+    platformFeePaise: platformFee,
+    gatewayFeePaise: gatewayFee,
+    gstPaise: gst,
+    totalPaise: total,
+  } = computeFees(subtotal);
   const totalFormatted = new Intl.NumberFormat(locale === "en" ? "en-IN" : `${locale}-IN`, {
     style: "currency",
     currency: "INR",
@@ -47,14 +51,14 @@ export function CheckoutClient({ order }: Props) {
   }).format(total / 100);
 
   function handleSendOtp() {
-    const cleaned = phoneInput.replace(/\s/g, "");
-    if (!/^\+91\d{10}$/.test(cleaned) && !/^\d{10}$/.test(cleaned)) {
+    // Shared with the gate scanner's sign-in, so "98765 43210", "098765…"
+    // and "+91 98765-43210" all resolve the same way on both surfaces.
+    if (!isValidIndianPhone(phoneInput)) {
       setPhoneError("Enter a valid 10-digit Indian mobile number");
       return;
     }
     setPhoneError("");
-    const normalised = cleaned.startsWith("+91") ? cleaned : `+91${cleaned}`;
-    setPhone(normalised);
+    setPhone(normalizePhone(phoneInput));
     setStep("otp");
   }
 
@@ -70,7 +74,15 @@ export function CheckoutClient({ order }: Props) {
       // Mock payment — no real Razorpay call. If the cart carries a real
       // selection (the normal path, via /e/[slug]/book), issue passes now;
       // this is the mock stand-in for a verified payment webhook.
-      if (cart.passTypeId && cart.zoneId) {
+      // Without a selection there is nothing to issue — previously this fell
+      // through to the success page anyway, which then said "passes are being
+      // generated" for an order that would never have any. Send the buyer back
+      // to choose instead.
+      if (!cart.passTypeId || !cart.zoneId || cart.quantity < 1) {
+        router.push(cart.eventSlug ? `/e/${cart.eventSlug}/book` : "/");
+        return;
+      }
+      {
         await payMockOrder({
           orderId: order.id,
           passTypeId: cart.passTypeId,

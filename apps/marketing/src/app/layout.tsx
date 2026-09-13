@@ -8,6 +8,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "ManharEvent — Garba & Navratri ticketing for organizers", template: "%s | ManharEvent" },
   description: "Register your Navratri event and get your own ticketed website, admin panel, and offline gate scanner — powered by Manhar Creatives.",
+  icons: {
+    icon: [{ url: "/brand/manharevent-favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/brand/manharevent-icon-square-192.png", sizes: "192x192" }],
+  },
   metadataBase: new URL(process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://manharevent.com"),
 };
 

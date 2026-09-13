@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getTenantBySlug } from "@manhar-garba/mock-data";
+import { DEFAULT_REFUND_TIERS, describeRefundTier } from "@manhar-garba/domain";
+import { Link } from "@/i18n/navigation";
 
 // See privacy/page.tsx's file-level comment — same rationale applies here:
 // server component, English-only starter legal content pending real
@@ -31,7 +33,7 @@ export default async function RefundPolicyPage() {
 
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-foreground">
         <p>
-          Unless a specific event's page states a different policy, the following default tiers apply to passes
+          Unless a specific event&rsquo;s page states a different policy, the following default tiers apply to passes
           bought on ManharEvent, measured against the first night the pass covers:
         </p>
 
@@ -44,26 +46,29 @@ export default async function RefundPolicyPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              <tr>
-                <td className="px-4 py-2.5 text-muted-foreground">7+ days before the first covered night</td>
-                <td className="px-4 py-2.5 text-foreground">90% (platform and gateway fees are non-refundable)</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 text-muted-foreground">3–6 days before</td>
-                <td className="px-4 py-2.5 text-foreground">50%</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 text-muted-foreground">Less than 3 days before, or after the event starts</td>
-                <td className="px-4 py-2.5 text-foreground">Not refundable</td>
-              </tr>
+              {/* Rendered from the same tiers the refund quote and the organizer's
+                  policy editor use — these rows used to be typed in by hand and
+                  disagreed with both. */}
+              {DEFAULT_REFUND_TIERS.map((tier) => (
+                <tr key={tier.minDaysBefore}>
+                  <td className="px-4 py-2.5 text-muted-foreground">{describeRefundTier(tier)} the first covered night</td>
+                  <td className="px-4 py-2.5 text-foreground">
+                    {tier.percent === 0 ? "Not refundable" : `${tier.percent}% of the pass price`}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
+        <p className="text-muted-foreground">
+          Refunds are calculated on the pass price. The platform fee and the payment gateway fee are not refundable —
+          the gateway keeps its charge on a reversed payment regardless.
+        </p>
 
         <section>
           <h2 className="font-display text-lg font-semibold text-foreground">How to request a refund</h2>
           <p className="mt-2">
-            Sign in and open <a href="/me/passes" className="underline">My Passes</a>, or write to{" "}
+            Sign in and open <Link href="/me/passes" className="underline">My Passes</Link>, or write to{" "}
             <a href={`mailto:${supportEmail}`} className="underline">{supportEmail}</a> with your order number.
             Approved refunds are returned to the original payment method within 5–7 business days.
           </p>

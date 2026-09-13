@@ -10,6 +10,12 @@ interface NightCardProps {
   headlineArtist?: string;
   imageUrl?: string;
   accentColor?: string;
+  /**
+   * Adds the hover and focus affordance for a card that is wrapped in a link.
+   * Without it a card that navigates looks exactly like one that doesn't, and
+   * people stop trying to click anything.
+   */
+  interactive?: boolean;
   className?: string;
 }
 
@@ -21,6 +27,7 @@ export function NightCard({
   headlineArtist,
   imageUrl,
   accentColor = "hsl(var(--primary))",
+  interactive = false,
   className,
 }: NightCardProps) {
   return (
@@ -28,6 +35,8 @@ export function NightCard({
       className={cn(
         "relative flex h-48 w-36 shrink-0 flex-col overflow-hidden rounded-xl border border-border",
         "bg-surface-raised",
+        interactive &&
+          "cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background",
         className
       )}
     >

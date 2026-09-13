@@ -33,7 +33,7 @@ export default async function PrivacyPolicyPage() {
 
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-foreground">
         <p>
-          {orgName} ("we", "us") operates ManharEvent, the ticketing platform used to sell and manage passes for
+          {orgName} (&ldquo;we&rdquo;, &ldquo;us&rdquo;) operates ManharEvent, the ticketing platform used to sell and manage passes for
           events organized on this domain. This policy explains what information we collect from you when you buy a
           pass or use a pass at the gate, and how we use it.
         </p>

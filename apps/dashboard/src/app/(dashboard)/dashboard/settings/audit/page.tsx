@@ -2,6 +2,7 @@
 
 import { useDashboardStore } from "@/lib/dashboard-store";
 import { Download } from "lucide-react";
+import { downloadCsv, todayStamp } from "@/lib/export";
 
 function timeStr(iso: string) {
   return new Date(iso).toLocaleString("en-IN", {
@@ -30,9 +31,19 @@ export default function AuditPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold text-foreground">Audit Log</h1>
-        <button className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <button
+          onClick={() =>
+            downloadCsv(
+              `audit-log-${todayStamp()}`,
+              ["Timestamp", "Action", "Actor", "Detail"],
+              auditLog.map((e) => [e.timestamp, e.action, e.actor, e.detail])
+            )
+          }
+          disabled={auditLog.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+        >
           <Download className="h-4 w-4" />
-          Export
+          Export CSV
         </button>
       </div>
 

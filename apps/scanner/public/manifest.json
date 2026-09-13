@@ -1,7 +1,7 @@
 {
-  "name": "Manharevents Scanner",
+  "name": "ManharEvent Scanner",
   "short_name": "Scanner",
-  "description": "Gate scanner PWA for Manharevents — scan passes, offline-first",
+  "description": "Gate scanner PWA for ManharEvent — scan passes, offline-first",
   "theme_color": "#0E0E12",
   "background_color": "#0E0E12",
   "display": "standalone",
@@ -10,15 +10,21 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/icons/icon-192.svg",
+      "src": "/brand/manharevent-icon-square-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.svg",
+      "src": "/brand/manharevent-icon-square-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/manharevent-icon-square-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ]
