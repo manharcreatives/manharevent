@@ -1,4 +1,4 @@
-import { EVENT_ID } from "./event";
+import { EVENT_ID, EVENT_ID_PP } from "./event";
 
 /**
  * Editorial content for an event's public pages — the About text, FAQ, how to
@@ -89,6 +89,47 @@ export const eventContent: EventContent[] = [
       "Silver night crowd",
       "Grand finale",
     ],
+  },
+  {
+    eventId: EVENT_ID_PP,
+    about: [
+      "Three nights of Garba on one open ground in Satellite — no zones, no seating chart, just a pass and the circle.",
+      "A Season pass covers all three nights; single-night and couple passes are sold per night if you're only coming for one.",
+    ],
+    highlights: [
+      "One general ground — every ticket gets the same view",
+      "Live sound system every night",
+      "Couple entry on one QR for Saturday",
+      "Short walk from Satellite Road",
+    ],
+    faqs: [
+      {
+        q: "How do I receive my pass?",
+        a: "Your QR pass appears on screen the moment payment goes through, and stays in My Passes.",
+      },
+      {
+        q: "Can I attend any night with the Season pass?",
+        a: "Yes. A Season pass covers all three nights — come to as many as you like.",
+      },
+      {
+        q: "Is re-entry allowed?",
+        a: "Yes, re-entry is unlimited while the gates are open.",
+      },
+      {
+        q: "Is there more than one zone?",
+        a: "No — this ground sells one general ticket. Every pass enters through the same gate.",
+      },
+      {
+        q: "What if my payment fails?",
+        a: "Nothing is charged and your selection stays in the cart. Try again, or use a different UPI app or card.",
+      },
+    ],
+    howToReach: [
+      { mode: "Bus", detail: "AMTS Satellite Road stop, 5 minutes on foot" },
+      { mode: "Auto / cab", detail: "Drop-off at the main gate on Satellite Road" },
+      { mode: "Parking", detail: "Free two-wheeler parking near the gate; limited car parking on the service road" },
+    ],
+    galleryCaptions: ["Opening night", "Friday raas", "Saturday finale"],
   },
 ];
 

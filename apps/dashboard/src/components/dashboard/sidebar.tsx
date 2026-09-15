@@ -2,21 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, ShieldCheck } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, ShieldCheck, LogOut } from "lucide-react";
 import { cn } from "@manhar-garba/ui";
 import { useDashboardStore } from "@/lib/dashboard-store";
+import { logoutOrgAction } from "@/app/actions/org";
 import { NAV, isSectionActive } from "./nav-items";
+
+const MARKETING_LOGIN_URL = process.env.NEXT_PUBLIC_MARKETING_URL
+  ? `${process.env.NEXT_PUBLIC_MARKETING_URL}/en/login`
+  : "http://localhost:3003/en/login";
 
 /** The section a path belongs to, so the right group is open on first paint. */
 function openGroupFor(pathname: string): string | null {
   return NAV.find((n) => n.children && isSectionActive(n, pathname))?.href ?? null;
 }
 
-export function Sidebar() {
+export function Sidebar({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(() => openGroupFor(pathname));
+  const [loggingOut, startLogout] = useTransition();
+
+  function handleLogout() {
+    startLogout(async () => {
+      await logoutOrgAction();
+      window.location.href = MARKETING_LOGIN_URL;
+    });
+  }
 
   // Follow the route: navigating from Finance to Settings should open Settings
   // rather than leaving the organizer looking at a collapsed group.
@@ -179,6 +192,17 @@ export function Sidebar() {
           <ShieldCheck className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Internal ops</span>}
         </Link>
+        {signedIn && (
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            title={collapsed ? "Log out" : undefined}
+            className="flex w-full items-center gap-2.5 rounded-md px-1 py-2 text-xs text-muted-foreground transition-colors hover:text-destructive"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>{loggingOut ? "Logging out…" : "Log out"}</span>}
+          </button>
+        )}
       </div>
     </aside>
   );

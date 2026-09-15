@@ -72,8 +72,12 @@ export default function RegisterProvisionedPage() {
       title: t("adminTitle"),
       desc: t("adminDesc"),
       cta: t("adminCta"),
+      // ADM-16 fix: this used to link straight into the dashboard with no
+      // sign-in at all — anyone with the URL saw the shell. Now it's the
+      // same login every return visit uses, phone prefilled from the
+      // application so it's still a one-click hand-off.
       address: `${application.desiredDomain}.${ROOT_DOMAIN}/dashboard`,
-      href: `${DASHBOARD_APP_URL}/dashboard`,
+      href: `/login?phone=${application.phone.replace(/\D/g, "").slice(-10)}`,
     },
     {
       icon: ScanLine,

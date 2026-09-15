@@ -26,7 +26,8 @@ import { getDeviceId } from "@/lib/device-id";
 import { playAllowed, playAlreadyIn, playError } from "@/lib/audio";
 import { hapticAllowed, hapticAlreadyIn, hapticError } from "@/lib/haptics";
 import type { ValidationResult } from "@/lib/validate";
-import { gateZones, zones as allZones, gates as allGates, EVENT_ID } from "@manhar-garba/mock-data";
+import { gateZones, zones as allZones, gates as allGates, listEventNights, EVENT_ID } from "@manhar-garba/mock-data";
+import { resolveActiveNight } from "@/lib/active-night";
 import { Keyboard, ClipboardList } from "lucide-react";
 
 // Dynamically load the camera component (browser-only). The fallback is the
@@ -67,12 +68,18 @@ export default function ScanPage() {
       const gate = allGates.find((g) => g.id === session.gateId);
       const zoneId = gateZones.find((gz) => gz.gate_id === session.gateId)?.zone_id;
       const zone = allZones.find((z) => z.id === zoneId);
+      // USR-52: which night it is comes from today's date, not a hardcoded
+      // default — same reasoning as gate/zone above, nothing here should be
+      // a fact the device just remembers forever.
+      const activeNight = resolveActiveNight(await listEventNights(EVENT_ID));
       const fromSession: Partial<ScannerSettings> = {
         gate_id: session.gateId,
         gate_name: gate?.name ?? session.gateLabel,
         zone_id: zone?.id ?? s.zone_id,
         zone_name: zone?.name ?? s.zone_name,
         zone_color: zone?.color ?? s.zone_color,
+        night_id: activeNight?.id ?? s.night_id,
+        night_label: activeNight ? `Night ${activeNight.night_number}` : s.night_label,
       };
 
       await saveSettings({ device_id: deviceId, ...fromSession });

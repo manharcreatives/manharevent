@@ -1,6 +1,6 @@
 import { classifyScanInput, normalizePassCode, verifyQrPayload } from "./crypto";
 import type { ScanManifestEntry } from "@manhar-garba/mock-data";
-import type { EntryMethod } from "./db";
+import type { EntryMethod, ManifestIndex } from "./db";
 
 // 8 verdict states as specified in design-system.md §6 — this union is also the
 // `state` prop of <ScanResult>, so it cannot grow without the design system.
@@ -54,7 +54,8 @@ export interface ValidateOptions {
   activeNightId: string;
   gateZoneId: string;
   gateZoneName: string;
-  manifest: ScanManifestEntry[];
+  /** O(1) lookup index (ARCH-12/P3-4) — see getManifestIndex() in db.ts. */
+  manifest: ManifestIndex;
   /** `manual` skips the QR signature step — there is no signature to check. */
   source?: EntryMethod;
 }
@@ -131,7 +132,7 @@ export function validateScan(input: string, options: ValidateOptions): Validatio
   // Step 0 — an empty manifest is an operational failure, not a bad pass. Saying
   // "invalid pass" here sends a paying customer away because the phone never
   // synced, which is the wrong person to blame.
-  if (manifest.length === 0) {
+  if (manifest.byPassCode.size === 0) {
     return deny(
       "invalid",
       "manifest_empty",
@@ -169,10 +170,10 @@ export function validateScan(input: string, options: ValidateOptions): Validatio
         "Do not admit — ask for the order SMS"
       );
     }
-    entry = manifest.find((e) => e.qr_payload === raw);
+    entry = manifest.byQrPayload.get(raw);
   } else {
     const code = normalizePassCode(raw);
-    entry = manifest.find((e) => normalizePassCode(e.pass_code) === code);
+    entry = manifest.byPassCode.get(code);
   }
 
   // Step 2 — manifest lookup

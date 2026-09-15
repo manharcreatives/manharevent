@@ -21,9 +21,9 @@ const STATUS_VARIANT: Record<string, "default" | "primary" | "success" | "warnin
 
 export default function RefundsPage() {
   const { phone, isAuthenticated } = useAuthStore();
-  const [data, setData] = useState<{ refundable: RefundableOrder[]; requests: RefundRow[] } | null>(
-    null
-  );
+  const [data, setData] = useState<
+    { refundable: RefundableOrder[]; requests: RefundRow[]; supportPhone: string } | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
 
@@ -191,7 +191,7 @@ export default function RefundsPage() {
                       ) : null}
 
                       <a
-                        href="https://wa.me/919876500000"
+                        href={`https://wa.me/${data.supportPhone.replace(/^\+/, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:text-foreground"

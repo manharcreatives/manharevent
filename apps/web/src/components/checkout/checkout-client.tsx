@@ -83,6 +83,10 @@ export function CheckoutClient({ order }: Props) {
   }
 
   function handleMockPay() {
+    // USR-05: the pay button is disabled without a confirmed phone (below),
+    // but guard here too — this is what actually lands on the order, not
+    // whatever createOrder was called with before sign-in.
+    if (!phone) return;
     if (nameInput.trim()) setName(nameInput.trim());
     startTransition(async () => {
       // Mock payment — no real Razorpay call. If the cart carries a real
@@ -99,6 +103,8 @@ export function CheckoutClient({ order }: Props) {
       {
         await payMockOrder({
           orderId: order.id,
+          buyerPhone: phone,
+          buyerName: nameInput.trim() || null,
           passTypeId: cart.passTypeId,
           zoneId: cart.zoneId,
           quantity: cart.quantity,
@@ -251,7 +257,7 @@ export function CheckoutClient({ order }: Props) {
             size="lg"
             className="w-full"
             onClick={handleMockPay}
-            disabled={isPending}
+            disabled={isPending || !phone}
           >
             {isPending ? t("processing") : t("payNow", { amount: totalFormatted })}
           </Button>

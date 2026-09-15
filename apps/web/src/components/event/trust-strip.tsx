@@ -1,7 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { Shield, MessageCircle } from "lucide-react";
 
-export async function TrustStrip() {
+interface TrustStripProps {
+  /** E.164 support number, e.g. "+919876543210" — from the tenant fixture (packages/mock-data), the one place this number is defined. */
+  supportPhone: string;
+}
+
+export async function TrustStrip({ supportPhone }: TrustStripProps) {
   const t = await getTranslations("Event");
 
   return (
@@ -12,7 +17,7 @@ export async function TrustStrip() {
       </span>
       <span>UPI · Cards · Net Banking · EMI</span>
       <a
-        href="https://wa.me/919876500000"
+        href={`https://wa.me/${supportPhone.replace(/^\+/, "")}`}
         target="_blank"
         rel="noopener noreferrer"
         className="ml-auto flex items-center gap-1.5 text-success hover:underline"

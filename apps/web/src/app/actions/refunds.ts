@@ -6,6 +6,7 @@ import {
   quoteRefund,
   requestRefund,
   getEvent,
+  getTenantBySlug,
 } from "@manhar-garba/mock-data";
 
 /**
@@ -39,10 +40,11 @@ export interface RefundRow {
 
 export async function getRefundsDataAction(
   phone: string
-): Promise<{ refundable: RefundableOrder[]; requests: RefundRow[] }> {
-  const [orders, refunds] = await Promise.all([
+): Promise<{ refundable: RefundableOrder[]; requests: RefundRow[]; supportPhone: string }> {
+  const [orders, refunds, tenant] = await Promise.all([
     listOrdersByPhone(phone),
     listRefundsByPhone(phone),
+    getTenantBySlug("manhar"),
   ]);
 
   const byOrderId = new Map(orders.map((o) => [o.id, o]));
@@ -79,6 +81,7 @@ export async function getRefundsDataAction(
       requestedAt: r.requested_at,
       resolvedAt: r.resolved_at,
     })),
+    supportPhone: tenant?.support_phone ?? "+919876543210",
   };
 }
 

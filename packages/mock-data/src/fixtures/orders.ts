@@ -1,14 +1,22 @@
 import type { Order, OrderItem, Payment } from "@manhar-garba/domain";
 import { paise } from "@manhar-garba/domain";
-import { TENANT_ID } from "./tenant";
-import { EVENT_ID } from "./event";
-import { PT_SEASON_COUPLE_GOLD, PT_SEASON_SOLO_GENERAL, PT_VIP_SEASON, PT_WEEKEND_COUPLE_GOLD } from "./pass-types";
+import { TENANT_ID, UMANG_TENANT_ID } from "./tenant";
+import { EVENT_ID, EVENT_ID_UMANG } from "./event";
+import {
+  PT_SEASON_COUPLE_GOLD, PT_SEASON_SOLO_GENERAL, PT_VIP_SEASON, PT_WEEKEND_COUPLE_GOLD,
+  PT_UMANG_SEASON, PT_UMANG_SINGLE, PT_UMANG_COUPLE,
+} from "./pass-types";
 
 export const ORDER_RINA = "ord-rina-kaushik-001";
 export const ORDER_PRIYA = "ord-priya-shah-001";
 export const ORDER_AMIT = "ord-amit-patel-001";
 export const ORDER_FAMILY = "ord-family-pass-001";
 export const ORDER_VIP = "ord-vip-meena-001";
+
+export const ORDER_UMANG_1 = "ord-umang-meera-001";
+export const ORDER_UMANG_2 = "ord-umang-raj-001";
+export const ORDER_UMANG_3 = "ord-umang-aarti-001";
+export const ORDER_UMANG_4 = "ord-umang-nisha-001";
 
 export const orders: Order[] = [
   // Rina & Kaushik — valid season couple gold
@@ -156,6 +164,119 @@ export const orders: Order[] = [
     created_at: "2026-07-20T09:55:00Z",
     updated_at: "2026-07-20T10:00:00Z",
   },
+  // Umang's own tenant — second demo organizer, own buyers, own money.
+  {
+    id: ORDER_UMANG_1,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_number: "UMG26-000101",
+    user_id: "user-meera-umang-001",
+    buyer_phone: "+919825098001",
+    buyer_name: "Meera Trivedi",
+    buyer_email: null,
+    status: "paid",
+    subtotal_paise: paise(150000),
+    discount_paise: paise(0),
+    convenience_fee_paise: paise(4500),
+    gst_paise: paise(27810),
+    total_paise: paise(182310),
+    promo_code_id: null,
+    utm_source: null,
+    utm_medium: null,
+    utm_campaign: null,
+    utm_content: null,
+    referrer_code: null,
+    ip_address: null,
+    user_agent: null,
+    expires_at: null,
+    paid_at: "2026-09-08T10:30:00Z",
+    created_at: "2026-09-08T10:25:00Z",
+    updated_at: "2026-09-08T10:30:00Z",
+  },
+  {
+    id: ORDER_UMANG_2,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_number: "UMG26-000102",
+    user_id: "user-raj-umang-001",
+    buyer_phone: "+919825098002",
+    buyer_name: "Raj Solanki",
+    buyer_email: null,
+    status: "paid",
+    subtotal_paise: paise(40000),
+    discount_paise: paise(0),
+    convenience_fee_paise: paise(1200),
+    gst_paise: paise(7416),
+    total_paise: paise(48616),
+    promo_code_id: null,
+    utm_source: null,
+    utm_medium: null,
+    utm_campaign: null,
+    utm_content: null,
+    referrer_code: null,
+    ip_address: null,
+    user_agent: null,
+    expires_at: null,
+    paid_at: "2026-09-09T18:10:00Z",
+    created_at: "2026-09-09T18:05:00Z",
+    updated_at: "2026-09-09T18:10:00Z",
+  },
+  {
+    id: ORDER_UMANG_3,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_number: "UMG26-000103",
+    user_id: "user-aarti-umang-001",
+    buyer_phone: "+919825098003",
+    buyer_name: "Aarti Desai",
+    buyer_email: null,
+    status: "paid",
+    subtotal_paise: paise(80000),
+    discount_paise: paise(0),
+    convenience_fee_paise: paise(2400),
+    gst_paise: paise(14832),
+    total_paise: paise(97232),
+    promo_code_id: null,
+    utm_source: null,
+    utm_medium: null,
+    utm_campaign: null,
+    utm_content: null,
+    referrer_code: null,
+    ip_address: null,
+    user_agent: null,
+    expires_at: null,
+    paid_at: "2026-09-11T09:45:00Z",
+    created_at: "2026-09-11T09:40:00Z",
+    updated_at: "2026-09-11T09:45:00Z",
+  },
+  {
+    id: ORDER_UMANG_4,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_number: "UMG26-000104",
+    user_id: "user-nisha-umang-001",
+    buyer_phone: "+919825098004",
+    buyer_name: "Nisha Patel",
+    buyer_email: null,
+    status: "paid",
+    subtotal_paise: paise(150000),
+    discount_paise: paise(0),
+    convenience_fee_paise: paise(4500),
+    gst_paise: paise(27810),
+    total_paise: paise(182310),
+    promo_code_id: null,
+    utm_source: null,
+    utm_medium: null,
+    utm_campaign: null,
+    utm_content: null,
+    referrer_code: null,
+    ip_address: null,
+    user_agent: null,
+    expires_at: null,
+    paid_at: "2026-09-12T16:20:00Z",
+    created_at: "2026-09-12T16:15:00Z",
+    updated_at: "2026-09-12T16:20:00Z",
+  },
 ];
 
 export const orderItems: OrderItem[] = [
@@ -164,6 +285,10 @@ export const orderItems: OrderItem[] = [
   { id: "oi-amit-001", tenant_id: TENANT_ID, order_id: ORDER_AMIT, pass_type_id: PT_SEASON_SOLO_GENERAL, addon_id: null, price_tier_id: "tier-ssgen-reg", quantity: 1, unit_price_paise: paise(249900), line_total_paise: paise(249900), gst_rate_bps: 1800, created_at: "2026-09-05T13:55:00Z", updated_at: "2026-09-05T13:55:00Z" },
   { id: "oi-family-001", tenant_id: TENANT_ID, order_id: ORDER_FAMILY, pass_type_id: PT_WEEKEND_COUPLE_GOLD, addon_id: null, price_tier_id: "tier-wcg-reg", quantity: 2, unit_price_paise: paise(499900), line_total_paise: paise(999800), gst_rate_bps: 1800, created_at: "2026-08-20T14:55:00Z", updated_at: "2026-08-20T14:55:00Z" },
   { id: "oi-vip-001", tenant_id: TENANT_ID, order_id: ORDER_VIP, pass_type_id: PT_VIP_SEASON, addon_id: null, price_tier_id: "tier-vip-reg", quantity: 1, unit_price_paise: paise(1499900), line_total_paise: paise(1499900), gst_rate_bps: 1800, created_at: "2026-07-20T09:55:00Z", updated_at: "2026-07-20T09:55:00Z" },
+  { id: "oi-umang-meera-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_1, pass_type_id: PT_UMANG_SEASON, addon_id: null, price_tier_id: "tier-umang-season-reg", quantity: 1, unit_price_paise: paise(150000), line_total_paise: paise(150000), gst_rate_bps: 1800, created_at: "2026-09-08T10:25:00Z", updated_at: "2026-09-08T10:25:00Z" },
+  { id: "oi-umang-raj-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_2, pass_type_id: PT_UMANG_SINGLE, addon_id: null, price_tier_id: "tier-umang-single-reg", quantity: 1, unit_price_paise: paise(40000), line_total_paise: paise(40000), gst_rate_bps: 1800, created_at: "2026-09-09T18:05:00Z", updated_at: "2026-09-09T18:05:00Z" },
+  { id: "oi-umang-aarti-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_3, pass_type_id: PT_UMANG_COUPLE, addon_id: null, price_tier_id: "tier-umang-couple-reg", quantity: 1, unit_price_paise: paise(80000), line_total_paise: paise(80000), gst_rate_bps: 1800, created_at: "2026-09-11T09:40:00Z", updated_at: "2026-09-11T09:40:00Z" },
+  { id: "oi-umang-nisha-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_4, pass_type_id: PT_UMANG_SEASON, addon_id: null, price_tier_id: "tier-umang-season-reg", quantity: 1, unit_price_paise: paise(150000), line_total_paise: paise(150000), gst_rate_bps: 1800, created_at: "2026-09-12T16:15:00Z", updated_at: "2026-09-12T16:15:00Z" },
 ];
 
 export const payments: Payment[] = [
@@ -172,4 +297,8 @@ export const payments: Payment[] = [
   { id: "pay-amit-001", tenant_id: TENANT_ID, order_id: ORDER_AMIT, provider: "razorpay", provider_order_id: "order_razorpay_003", provider_payment_id: "pay_razorpay_003", provider_signature: "sig_003", method: "card", amount_paise: paise(302113), status: "refunded", failure_reason: null, raw_payload: null, captured_at: "2026-09-05T14:00:00Z", created_at: "2026-09-05T13:55:00Z", updated_at: "2026-10-01T10:00:00Z" },
   { id: "pay-family-001", tenant_id: TENANT_ID, order_id: ORDER_FAMILY, provider: "razorpay", provider_order_id: "order_razorpay_004", provider_payment_id: "pay_razorpay_004", provider_signature: "sig_004", method: "upi", amount_paise: paise(1087992), status: "captured", failure_reason: null, raw_payload: null, captured_at: "2026-08-20T15:00:00Z", created_at: "2026-08-20T14:55:00Z", updated_at: "2026-08-20T15:00:00Z" },
   { id: "pay-vip-001", tenant_id: TENANT_ID, order_id: ORDER_VIP, provider: "razorpay", provider_order_id: "order_razorpay_005", provider_payment_id: "pay_razorpay_005", provider_signature: "sig_005", method: "card", amount_paise: paise(1813862), status: "captured", failure_reason: null, raw_payload: null, captured_at: "2026-07-20T10:00:00Z", created_at: "2026-07-20T09:55:00Z", updated_at: "2026-07-20T10:00:00Z" },
+  { id: "pay-umang-meera-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_1, provider: "razorpay", provider_order_id: "order_razorpay_umg_001", provider_payment_id: "pay_razorpay_umg_001", provider_signature: "sig_umg_001", method: "upi", amount_paise: paise(182310), status: "captured", failure_reason: null, raw_payload: null, captured_at: "2026-09-08T10:30:00Z", created_at: "2026-09-08T10:25:00Z", updated_at: "2026-09-08T10:30:00Z" },
+  { id: "pay-umang-raj-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_2, provider: "razorpay", provider_order_id: "order_razorpay_umg_002", provider_payment_id: "pay_razorpay_umg_002", provider_signature: "sig_umg_002", method: "upi", amount_paise: paise(48616), status: "captured", failure_reason: null, raw_payload: null, captured_at: "2026-09-09T18:10:00Z", created_at: "2026-09-09T18:05:00Z", updated_at: "2026-09-09T18:10:00Z" },
+  { id: "pay-umang-aarti-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_3, provider: "razorpay", provider_order_id: "order_razorpay_umg_003", provider_payment_id: "pay_razorpay_umg_003", provider_signature: "sig_umg_003", method: "card", amount_paise: paise(97232), status: "captured", failure_reason: null, raw_payload: null, captured_at: "2026-09-11T09:45:00Z", created_at: "2026-09-11T09:40:00Z", updated_at: "2026-09-11T09:45:00Z" },
+  { id: "pay-umang-nisha-001", tenant_id: UMANG_TENANT_ID, order_id: ORDER_UMANG_4, provider: "razorpay", provider_order_id: "order_razorpay_umg_004", provider_payment_id: "pay_razorpay_umg_004", provider_signature: "sig_umg_004", method: "upi", amount_paise: paise(182310), status: "captured", failure_reason: null, raw_payload: null, captured_at: "2026-09-12T16:20:00Z", created_at: "2026-09-12T16:15:00Z", updated_at: "2026-09-12T16:20:00Z" },
 ];

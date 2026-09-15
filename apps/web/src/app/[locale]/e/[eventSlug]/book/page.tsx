@@ -8,8 +8,9 @@ import {
   listPassTypes,
   listPriceTiers,
   listAddons,
+  listEventNights,
 } from "@manhar-garba/mock-data";
-import { BookClient, type BookZone, type BookPassType, type BookAddon } from "@/components/book/book-client";
+import { BookClient, type BookZone, type BookPassType, type BookAddon, type BookNight } from "@/components/book/book-client";
 import { localeAlternates } from "@/lib/seo";
 import { currentPricePaise } from "@/lib/pricing";
 
@@ -41,10 +42,11 @@ export default async function BookPage({
   if (!event) notFound();
 
   const tenant = await getTenantBySlug("manhar");
-  const [zones, passTypes, addons] = await Promise.all([
+  const [zones, passTypes, addons, nights] = await Promise.all([
     listZones(event.id),
     listPassTypes(event.id),
     listAddons(event.id),
+    listEventNights(event.id),
   ]);
 
   const tierLists = await Promise.all(passTypes.map((pt) => listPriceTiers(pt.id)));
@@ -81,6 +83,10 @@ export default async function BookPage({
     pricePaise: a.price_paise,
   }));
 
+  const bookNights: BookNight[] = nights
+    .map((n) => ({ id: n.id, nightNumber: n.night_number, date: n.date, theme: n.theme }))
+    .sort((a, b) => a.nightNumber - b.nightNumber);
+
   return (
     <BookClient
       eventSlug={event.slug}
@@ -90,6 +96,7 @@ export default async function BookPage({
       zones={bookZones}
       passTypes={bookPassTypes}
       addons={bookAddons}
+      nights={bookNights}
     />
   );
 }

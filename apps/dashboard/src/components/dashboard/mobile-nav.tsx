@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Menu, ShieldCheck } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { Menu, ShieldCheck, LogOut } from "lucide-react";
 import {
   cn,
   Sheet,
@@ -13,7 +13,12 @@ import {
   SheetDescription,
 } from "@manhar-garba/ui";
 import { useDashboardStore } from "@/lib/dashboard-store";
+import { logoutOrgAction } from "@/app/actions/org";
 import { NAV, isSectionActive } from "./nav-items";
+
+const MARKETING_LOGIN_URL = process.env.NEXT_PUBLIC_MARKETING_URL
+  ? `${process.env.NEXT_PUBLIC_MARKETING_URL}/en/login`
+  : "http://localhost:3003/en/login";
 
 /**
  * Phone navigation for the organizer shell.
@@ -23,9 +28,10 @@ import { NAV, isSectionActive } from "./nav-items";
  * the browser's back button. This is the same `NAV` tree in a drawer, plus the
  * event switcher, which on a phone is the only place it exists.
  */
-export function MobileNav() {
+export function MobileNav({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [loggingOut, startLogout] = useTransition();
 
   const events = useDashboardStore((s) => s.events);
   const currentEventId = useDashboardStore((s) => s.currentEventId);
@@ -34,6 +40,13 @@ export function MobileNav() {
 
   // Navigating away is the end of the drawer's job.
   useEffect(() => setOpen(false), [pathname]);
+
+  function handleLogout() {
+    startLogout(async () => {
+      await logoutOrgAction();
+      window.location.href = MARKETING_LOGIN_URL;
+    });
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-surface/95 px-2 backdrop-blur sm:hidden">
@@ -126,6 +139,16 @@ export function MobileNav() {
               <ShieldCheck className="h-4 w-4 shrink-0" />
               Internal ops
             </Link>
+            {signedIn && (
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4 shrink-0" />
+                {loggingOut ? "Logging out…" : "Log out"}
+              </button>
+            )}
           </div>
         </SheetContent>
       </Sheet>

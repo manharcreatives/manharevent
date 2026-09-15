@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useDashboardStore, type Role } from "@/lib/dashboard-store";
+import { useDashboardStore, type Role, type TeamMember } from "@/lib/dashboard-store";
 import { RoleGate } from "@/components/dashboard/role-gate";
-import { Button, Input, Field, toast } from "@manhar-garba/ui";
+import { Button, Input, Field, ConfirmDialog, toast } from "@manhar-garba/ui";
 import { GateAccessPanel } from "@/components/dashboard/gate-access-panel";
 import { gates as allGates } from "@manhar-garba/mock-data";
 import { isValidIndianPhone, normalizePhone } from "@manhar-garba/domain";
@@ -32,6 +32,7 @@ export default function TeamPage() {
   const [role, setRole] = useState<Role>("finance");
   const [gateId, setGateId] = useState<string>(allGates[0]?.id ?? "");
   const [formError, setFormError] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<TeamMember | null>(null);
 
   function handleAdd() {
     if (!name.trim()) {
@@ -194,7 +195,7 @@ export default function TeamPage() {
                   </span>
                   <RoleGate allow={["owner"]}>
                     <button
-                      onClick={() => removeTeamMember(m.id)}
+                      onClick={() => setPendingRemove(m)}
                       className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-raised hover:text-destructive sm:h-9 sm:w-9"
                       aria-label={`Remove ${m.name} from the team`}
                     >
@@ -218,6 +219,26 @@ export default function TeamPage() {
           );
         })}
       </ul>
+
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        onOpenChange={(open) => !open && setPendingRemove(null)}
+        title={`Remove ${pendingRemove?.name ?? "this person"}?`}
+        description={
+          pendingRemove &&
+          scannerCredentials.some((c) => c.teamMemberId === pendingRemove.id && c.revokedAt === null)
+            ? `${pendingRemove.name} will lose team access immediately, and their scanner login for the gate app will be revoked — they won't be able to sign in and scan again.`
+            : `${pendingRemove?.name ?? "This person"} will lose team access immediately.`
+        }
+        confirmLabel="Remove from team"
+        onConfirm={() => {
+          if (pendingRemove) {
+            removeTeamMember(pendingRemove.id);
+            toast.success(`${pendingRemove.name} removed`);
+          }
+          setPendingRemove(null);
+        }}
+      />
     </div>
   );
 }

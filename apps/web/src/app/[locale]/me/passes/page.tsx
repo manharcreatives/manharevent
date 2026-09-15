@@ -114,7 +114,7 @@ export default function MyPassesPage() {
               <PassCard
                 key={pass.id}
                 state={pass.cardState}
-                holderName={pass.buyerName ?? "Guest"}
+                holderName={pass.buyerName || t("guest")}
                 zoneName={pass.zoneName}
                 zoneColor={pass.zoneColor ?? undefined}
                 admits={pass.admits}

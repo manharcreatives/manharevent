@@ -33,6 +33,25 @@ export default function RegisterStatusPage() {
     return () => { cancelled = true; };
   }, [applicationId]);
 
+  // Live refresh (2026-09-15 shared-store track): an internal-ops approval
+  // now lands in the shared file store within ~300ms (see packages/
+  // mock-data/src/storage.ts) — this picks it up instead of asking the
+  // organizer to sit here hitting refresh. Stops once the status is one this
+  // page has nothing further to say about.
+  useEffect(() => {
+    if (!applicationId) return;
+    const isSettled =
+      application?.status === "rejected" ||
+      application?.status === "more_info_needed" ||
+      (application?.status === "approved" && Boolean(application.provisionedAt));
+    if (isSettled) return;
+
+    const id = setInterval(() => {
+      getApplicationAction(applicationId).then(setApplication).catch(() => {});
+    }, 3000);
+    return () => clearInterval(id);
+  }, [applicationId, application?.status, application?.provisionedAt]);
+
   // The heading sits above every branch: a screen reader (and a crawler) should
   // find one <h1> whether the application is still loading, missing, or ready.
   const header = (

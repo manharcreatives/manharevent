@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { Button } from "@manhar-garba/ui";
+import { Button, Badge } from "@manhar-garba/ui";
 import {
   getTenantBySlug,
   getTenantBranding,
@@ -171,6 +171,28 @@ export default async function HomePage({
           />
         </div>
       </section>
+
+      {/* ── Other grounds (demo) ─────────────────────────────────────────
+          Honest label — this is a second, smaller seeded event used to
+          demo the open-ground (single-ticket, no zones) booking path,
+          not a second real organizer event. */}
+      {events.length > 1 && events[1] && (
+        <section className="mx-auto max-w-[1280px] px-4 pb-10 sm:px-6 lg:px-8">
+          <Link
+            href={`/e/${events[1].slug}`}
+            className="group flex items-center justify-between gap-4 rounded-2xl border border-dashed border-border bg-surface/60 px-5 py-4 transition-colors hover:border-primary/50"
+          >
+            <div className="min-w-0">
+              <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                {events[1].title}
+                <Badge>{t("demoBadge")}</Badge>
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{t("otherGroundNote")}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </section>
+      )}
 
       {/* ── Zones and prices ─────────────────────────────────────────── */}
       {event && zones.length > 0 && (

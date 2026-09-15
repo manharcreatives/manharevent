@@ -24,6 +24,8 @@ export interface TenantApplication {
   submittedAt: string | null;
   decidedAt: string | null;
   provisionedAt: string | null;
+  /** Set once approve = provision creates the real `Tenant` row (ADM-16). Null until then. */
+  tenantId: string | null;
   createdAt: string;
   updatedAt: string;
 }

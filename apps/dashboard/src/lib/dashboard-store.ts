@@ -6,8 +6,10 @@ import type { Event, EventNight, Zone, Gate, Venue, PassType, PriceTier, AddOn, 
 import { issueGateCode, normalizePhone, paise, DEFAULT_REFUND_TIERS, refundPercentFor } from "@manhar-garba/domain";
 import {
   event as mockEvent,
+  eventPartyPlot as mockEventPP,
   eventNights as mockEventNights,
   venue as mockVenue,
+  venuePartyPlot as mockVenuePP,
   gates as mockGates,
   nightLineup as mockNightLineup,
   zones as mockZones,
@@ -238,6 +240,13 @@ export interface EventDraft {
   city: string;
   totalCapacity: number;
   reentry: ReentryMode;
+  /**
+   * "open" = one general zone, one gate, no zone map — most Garba grounds
+   * sell a single ticket, not a VIP/Gold/General split. Ignored when
+   * cloning (the source event's own zone structure wins). `zone_id` on
+   * PassType stays required either way; "open" just means there's one.
+   */
+  layout: "open" | "zoned";
   /** When set, zones, pass types, add-ons and policy are copied from this event. */
   cloneFromId: string | null;
 }
@@ -399,7 +408,7 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
     (set, get) => ({
       // initial state
       currentRole: "owner",
-      events: [mockEvent],
+      events: [mockEvent, mockEventPP],
       currentEventId: mockEvent.id,
       nights: mockEventNights,
       lineupByNight: Object.fromEntries(
@@ -413,8 +422,8 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
       ),
       zones: mockZones,
       gates: mockGates,
-      venues: [mockVenue],
-      policies: { [mockEvent.id]: DEFAULT_POLICY },
+      venues: [mockVenue, mockVenuePP],
+      policies: { [mockEvent.id]: DEFAULT_POLICY, [mockEventPP.id]: DEFAULT_POLICY },
       unlistedEventIds: [],
       refunds: seedRefunds(),
       domainSettings: {
@@ -498,8 +507,28 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
 
       removeTeamMember: (id) => {
         const member = get().team.find((m) => m.id === id);
-        set((s) => ({ team: s.team.filter((m) => m.id !== id) }));
-        if (member) get().addAuditEntry("team.removed", `${member.name} removed`);
+        // ADM-09: a removed team member kept their scanner login — the phone
+        // that had them still opened the gate app after they were off the
+        // team. Removal now revokes every credential of theirs still live.
+        const revokedAt = new Date().toISOString();
+        const activeCredentials = get().scannerCredentials.filter(
+          (c) => c.teamMemberId === id && c.revokedAt === null
+        );
+        set((s) => ({
+          team: s.team.filter((m) => m.id !== id),
+          scannerCredentials: s.scannerCredentials.map((c) =>
+            c.teamMemberId === id && c.revokedAt === null ? { ...c, revokedAt } : c
+          ),
+        }));
+        if (member) {
+          get().addAuditEntry("team.removed", `${member.name} removed`);
+          if (activeCredentials.length > 0) {
+            get().addAuditEntry(
+              "scanner_credential.revoked",
+              `Scanner login revoked for ${member.name} (${member.phone}) — team member removed`
+            );
+          }
+        }
       },
 
       issueScannerCredential: (teamMemberId, gateLabel) => {
@@ -746,6 +775,86 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
               created_at: now,
               updated_at: now,
             }));
+        } else if (draft.layout === "open") {
+          // Open ground: most Garba grounds sell one ticket, no zone split.
+          // One zone, one gate — the buyer never sees a zone map.
+          const cap = Math.max(100, draft.totalCapacity);
+          zones = [
+            {
+              id: `zone-${crypto.randomUUID().slice(0, 8)}`,
+              tenant_id: TENANT_ID,
+              event_id: eventId,
+              code: "GENERAL",
+              name: "General Ground",
+              description: "Open ground, standing. One ticket, no zones.",
+              capacity: cap,
+              color: "hsl(14 92% 56%)",
+              sort_order: 0,
+              created_at: now,
+              updated_at: now,
+            },
+          ];
+          gates = [
+            {
+              id: `gate-${crypto.randomUUID().slice(0, 8)}`,
+              tenant_id: TENANT_ID,
+              event_id: eventId,
+              code: "G1",
+              name: "Gate 1 — Main Entry",
+              direction: "both" as const,
+              created_at: now,
+              updated_at: now,
+            },
+          ];
+          const ground = zones[0]!;
+          const allNights = nights.map((n) => n.id);
+          const openDefaults = [
+            { zone: ground, name: "Season Pass", kind: "season" as const, admits: 1, qty: Math.round(ground.capacity * 0.6), price: 249900 },
+            { zone: ground, name: "Couple Pass", kind: "season" as const, admits: 2, qty: Math.round(ground.capacity * 0.2), price: 449900 },
+            { zone: ground, name: "Any One Night", kind: "daily" as const, admits: 1, qty: Math.round(ground.capacity * 0.4), price: 29900 },
+          ];
+          openDefaults.forEach((d, i) => {
+            const id = `pt-${crypto.randomUUID().slice(0, 8)}`;
+            passTypes.push({
+              id,
+              tenant_id: TENANT_ID,
+              event_id: eventId,
+              zone_id: d.zone.id,
+              code: toCode(d.name),
+              name: d.name,
+              description: `${d.kind === "season" ? `All ${nights.length} nights` : "Valid for any one night"}, ${d.zone.name}. Admits ${d.admits}.`,
+              kind: d.kind,
+              admits: d.admits,
+              night_ids: allNights,
+              total_quantity: d.qty,
+              sold_quantity: 0,
+              held_quantity: 0,
+              min_per_order: 1,
+              max_per_order: 6,
+              sale_starts_at: null,
+              sale_ends_at: null,
+              requires_photo: false,
+              is_transferable: true,
+              status: "on_sale",
+              sort_order: i,
+              created_at: now,
+              updated_at: now,
+            });
+            priceTiers.push({
+              id: `tier-${crypto.randomUUID().slice(0, 8)}`,
+              tenant_id: TENANT_ID,
+              pass_type_id: id,
+              name: "Regular",
+              price_paise: paise(d.price),
+              starts_at: null,
+              ends_at: null,
+              quantity_cap: null,
+              quantity_sold: 0,
+              sort_order: 0,
+              created_at: now,
+              updated_at: now,
+            });
+          });
         } else {
           // New event: a working Garba starting point, so "create" leaves the
           // organizer with something they can publish, not an empty shell.
@@ -1131,6 +1240,10 @@ export const useDashboardStore = create<DashboardState & DashboardActions>()(
             t.id === id ? { ...t, ...patch, updated_at: new Date().toISOString() } : t
           ),
         }));
+        const tier = get().priceTiers.find((t) => t.id === id);
+        if (tier && patch.price_paise !== undefined) {
+          get().addAuditEntry("price_tier.updated", `${tier.name} tier set to ₹${(tier.price_paise / 100).toLocaleString("en-IN")}`);
+        }
       },
 
       removePriceTier: (id) => {

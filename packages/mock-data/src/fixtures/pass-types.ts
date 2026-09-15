@@ -1,7 +1,11 @@
 import type { PassType, PriceTier, AddOn, PromoCode } from "@manhar-garba/domain";
 import { paise } from "@manhar-garba/domain";
-import { TENANT_ID, tenantCommission } from "./tenant";
-import { EVENT_ID, ZONE_VIP_ID, ZONE_GOLD_ID, ZONE_GENERAL_ID, NIGHT_IDS } from "./event";
+import { TENANT_ID, UMANG_TENANT_ID, tenantCommission } from "./tenant";
+import {
+  EVENT_ID, ZONE_VIP_ID, ZONE_GOLD_ID, ZONE_GENERAL_ID, NIGHT_IDS,
+  EVENT_ID_PP, ZONE_PP_GENERAL_ID, NIGHT_IDS_PP,
+  EVENT_ID_UMANG, ZONE_UMANG_GENERAL_ID, NIGHT_IDS_UMANG,
+} from "./event";
 
 export const PT_SEASON_COUPLE_GOLD = "pt-season-couple-gold";
 export const PT_SEASON_SOLO_GOLD = "pt-season-solo-gold";
@@ -14,9 +18,22 @@ export const PT_SEASON_COUPLE_GENERAL = "pt-season-couple-general";
 export const PT_SEASON_FAMILY_GENERAL = "pt-season-family-general";
 export const PT_SINGLE_NIGHT_GENERAL = "pt-single-night-general";
 
+// Open-ground event (party plot) — one zone, no zone split.
+export const PT_PP_SEASON = "pt-pp-season";
+export const PT_PP_WEEKEND = "pt-pp-weekend";
+export const PT_PP_NIGHT_THU = "pt-pp-night-thu";
+export const PT_PP_NIGHT_FRI = "pt-pp-night-fri";
+export const PT_PP_NIGHT_SAT = "pt-pp-night-sat";
+export const PT_PP_COUPLE_SAT = "pt-pp-couple-sat";
+
+// Umang Garba Group's own ground — second demo organizer, own tenant.
+export const PT_UMANG_SEASON = "pt-umang-season";
+export const PT_UMANG_SINGLE = "pt-umang-single";
+export const PT_UMANG_COUPLE = "pt-umang-couple";
+
 void tenantCommission; // referenced for context — commission applied at order level
 
-export const passTypes: PassType[] = [
+const passTypesBase: PassType[] = [
   {
     id: PT_SEASON_COUPLE_GOLD,
     tenant_id: TENANT_ID,
@@ -219,7 +236,247 @@ export const passTypes: PassType[] = [
   },
 ];
 
-export const priceTiers: PriceTier[] = [
+// Open-ground (party plot) pass types — single zone, per-night pricing.
+const passTypesPartyPlot: PassType[] = [
+  {
+    id: PT_PP_SEASON,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID_PP,
+    zone_id: ZONE_PP_GENERAL_ID,
+    code: "PP_SEASON",
+    name: "Season Pass",
+    description: "All 3 nights, General Ground. Admits 1.",
+    kind: "season",
+    admits: 1,
+    night_ids: NIGHT_IDS_PP,
+    total_quantity: 300,
+    sold_quantity: 140,
+    held_quantity: 5,
+    min_per_order: 1,
+    max_per_order: 4,
+    sale_starts_at: "2026-08-01T00:00:00Z",
+    sale_ends_at: "2026-10-03T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 0,
+    created_at: "2026-08-01T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+  {
+    id: PT_PP_WEEKEND,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID_PP,
+    zone_id: ZONE_PP_GENERAL_ID,
+    code: "PP_WEEKEND",
+    name: "Weekend Pass",
+    description: "Friday & Saturday, General Ground. Admits 1.",
+    kind: "weekend",
+    admits: 1,
+    night_ids: ["night-pp-02", "night-pp-03"],
+    total_quantity: 400,
+    sold_quantity: 90,
+    held_quantity: 5,
+    min_per_order: 1,
+    max_per_order: 4,
+    sale_starts_at: "2026-08-01T00:00:00Z",
+    sale_ends_at: "2026-10-03T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 1,
+    created_at: "2026-08-01T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+  {
+    id: PT_PP_NIGHT_THU,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID_PP,
+    zone_id: ZONE_PP_GENERAL_ID,
+    code: "PP_NIGHT_THU",
+    name: "Single Night — Thursday",
+    description: "Thursday only, General Ground. Admits 1.",
+    kind: "single_night",
+    admits: 1,
+    night_ids: ["night-pp-01"],
+    total_quantity: 500,
+    sold_quantity: 60,
+    held_quantity: 0,
+    min_per_order: 1,
+    max_per_order: 10,
+    sale_starts_at: "2026-08-01T00:00:00Z",
+    sale_ends_at: "2026-10-01T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 2,
+    created_at: "2026-08-01T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+  {
+    id: PT_PP_NIGHT_FRI,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID_PP,
+    zone_id: ZONE_PP_GENERAL_ID,
+    code: "PP_NIGHT_FRI",
+    name: "Single Night — Friday",
+    description: "Friday only, General Ground. Admits 1.",
+    kind: "single_night",
+    admits: 1,
+    night_ids: ["night-pp-02"],
+    total_quantity: 500,
+    sold_quantity: 210,
+    held_quantity: 10,
+    min_per_order: 1,
+    max_per_order: 10,
+    sale_starts_at: "2026-08-01T00:00:00Z",
+    sale_ends_at: "2026-10-02T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 3,
+    created_at: "2026-08-01T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+  {
+    id: PT_PP_NIGHT_SAT,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID_PP,
+    zone_id: ZONE_PP_GENERAL_ID,
+    code: "PP_NIGHT_SAT",
+    name: "Single Night — Saturday",
+    description: "Saturday only, General Ground. Admits 1.",
+    kind: "single_night",
+    admits: 1,
+    night_ids: ["night-pp-03"],
+    total_quantity: 500,
+    sold_quantity: 460,
+    held_quantity: 20,
+    min_per_order: 1,
+    max_per_order: 10,
+    sale_starts_at: "2026-08-01T00:00:00Z",
+    sale_ends_at: "2026-10-03T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 4,
+    created_at: "2026-08-01T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+  {
+    id: PT_PP_COUPLE_SAT,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID_PP,
+    zone_id: ZONE_PP_GENERAL_ID,
+    code: "PP_COUPLE_SAT",
+    name: "Couple Pass — Saturday",
+    description: "Saturday only, General Ground. Admits 2 on one QR.",
+    kind: "single_night",
+    admits: 2,
+    night_ids: ["night-pp-03"],
+    total_quantity: 200,
+    sold_quantity: 40,
+    held_quantity: 0,
+    min_per_order: 1,
+    max_per_order: 4,
+    sale_starts_at: "2026-08-01T00:00:00Z",
+    sale_ends_at: "2026-10-03T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 5,
+    created_at: "2026-08-01T10:00:00Z",
+    updated_at: "2026-09-01T10:00:00Z",
+  },
+];
+
+// Umang's own ground — one zone, own tenant, no addons. Couple is a
+// season-kind pass (all 3 nights, admits 2) rather than single-night: this
+// zone's only single_night pass type is "Single" itself, so it stays the
+// lone, generic, buyer-picks-a-night SKU (see book-client.tsx's
+// isGenericSingleNight — a second single_night type here would make it
+// ambiguous which one "the" picker belongs to).
+const passTypesUmang: PassType[] = [
+  {
+    id: PT_UMANG_SEASON,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    code: "UMANG_SEASON",
+    name: "Season Pass",
+    description: "All 3 nights, General Ground. Admits 1.",
+    kind: "season",
+    admits: 1,
+    night_ids: NIGHT_IDS_UMANG,
+    total_quantity: 500,
+    sold_quantity: 180,
+    held_quantity: 10,
+    min_per_order: 1,
+    max_per_order: 4,
+    sale_starts_at: "2026-08-15T00:00:00Z",
+    sale_ends_at: "2026-10-06T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 0,
+    created_at: "2026-09-06T15:00:00Z",
+    updated_at: "2026-09-06T15:00:00Z",
+  },
+  {
+    id: PT_UMANG_SINGLE,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    code: "UMANG_SINGLE",
+    name: "Single Night",
+    description: "One night of your choice, General Ground. Admits 1.",
+    kind: "single_night",
+    admits: 1,
+    night_ids: [NIGHT_IDS_UMANG[0]!],
+    total_quantity: 800,
+    sold_quantity: 260,
+    held_quantity: 15,
+    min_per_order: 1,
+    max_per_order: 10,
+    sale_starts_at: "2026-08-15T00:00:00Z",
+    sale_ends_at: "2026-10-06T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 1,
+    created_at: "2026-09-06T15:00:00Z",
+    updated_at: "2026-09-06T15:00:00Z",
+  },
+  {
+    id: PT_UMANG_COUPLE,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    code: "UMANG_COUPLE",
+    name: "Couple Pass",
+    description: "All 3 nights, General Ground. Admits 2 on one QR.",
+    kind: "season",
+    admits: 2,
+    night_ids: NIGHT_IDS_UMANG,
+    total_quantity: 250,
+    sold_quantity: 70,
+    held_quantity: 5,
+    min_per_order: 1,
+    max_per_order: 4,
+    sale_starts_at: "2026-08-15T00:00:00Z",
+    sale_ends_at: "2026-10-06T23:59:00Z",
+    requires_photo: false,
+    is_transferable: true,
+    status: "on_sale",
+    sort_order: 2,
+    created_at: "2026-09-06T15:00:00Z",
+    updated_at: "2026-09-06T15:00:00Z",
+  },
+];
+
+export const passTypes: PassType[] = [...passTypesBase, ...passTypesPartyPlot, ...passTypesUmang];
+
+const priceTiersBase: PriceTier[] = [
   // Season Couple Gold
   { id: "tier-scg-eb", tenant_id: TENANT_ID, pass_type_id: PT_SEASON_COUPLE_GOLD, name: "Early Bird", price_paise: paise(699900), starts_at: "2026-07-01T00:00:00Z", ends_at: "2026-08-31T23:59:00Z", quantity_cap: 500, quantity_sold: 500, sort_order: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
   { id: "tier-scg-reg", tenant_id: TENANT_ID, pass_type_id: PT_SEASON_COUPLE_GOLD, name: "Regular", price_paise: paise(899900), starts_at: "2026-09-01T00:00:00Z", ends_at: "2026-10-10T23:59:00Z", quantity_cap: null, quantity_sold: 1180, sort_order: 1, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
@@ -239,6 +496,32 @@ export const priceTiers: PriceTier[] = [
   { id: "tier-sngen-reg", tenant_id: TENANT_ID, pass_type_id: PT_SINGLE_NIGHT_GENERAL, name: "Regular", price_paise: paise(59900), starts_at: "2026-07-01T00:00:00Z", ends_at: "2026-10-10T23:59:00Z", quantity_cap: null, quantity_sold: 2400, sort_order: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
 ];
 
+// Open-ground (party plot) price tiers — one "Regular" tier each, freely
+// admin-editable via updatePriceTier() (dashboard-store.ts).
+const priceTiersPartyPlot: PriceTier[] = [
+  { id: "tier-pp-season-reg", tenant_id: TENANT_ID, pass_type_id: PT_PP_SEASON, name: "Regular", price_paise: paise(250000), starts_at: "2026-08-01T00:00:00Z", ends_at: "2026-10-03T23:59:00Z", quantity_cap: null, quantity_sold: 140, sort_order: 0, created_at: "2026-08-01T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+  { id: "tier-pp-weekend-reg", tenant_id: TENANT_ID, pass_type_id: PT_PP_WEEKEND, name: "Regular", price_paise: paise(120000), starts_at: "2026-08-01T00:00:00Z", ends_at: "2026-10-03T23:59:00Z", quantity_cap: null, quantity_sold: 90, sort_order: 0, created_at: "2026-08-01T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+  { id: "tier-pp-thu-reg", tenant_id: TENANT_ID, pass_type_id: PT_PP_NIGHT_THU, name: "Regular", price_paise: paise(25000), starts_at: "2026-08-01T00:00:00Z", ends_at: "2026-10-01T23:59:00Z", quantity_cap: null, quantity_sold: 60, sort_order: 0, created_at: "2026-08-01T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+  { id: "tier-pp-fri-reg", tenant_id: TENANT_ID, pass_type_id: PT_PP_NIGHT_FRI, name: "Regular", price_paise: paise(30000), starts_at: "2026-08-01T00:00:00Z", ends_at: "2026-10-02T23:59:00Z", quantity_cap: null, quantity_sold: 210, sort_order: 0, created_at: "2026-08-01T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+  { id: "tier-pp-sat-reg", tenant_id: TENANT_ID, pass_type_id: PT_PP_NIGHT_SAT, name: "Regular", price_paise: paise(40000), starts_at: "2026-08-01T00:00:00Z", ends_at: "2026-10-03T23:59:00Z", quantity_cap: null, quantity_sold: 460, sort_order: 0, created_at: "2026-08-01T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+  { id: "tier-pp-couple-sat-reg", tenant_id: TENANT_ID, pass_type_id: PT_PP_COUPLE_SAT, name: "Regular", price_paise: paise(90000), starts_at: "2026-08-01T00:00:00Z", ends_at: "2026-10-03T23:59:00Z", quantity_cap: null, quantity_sold: 40, sort_order: 0, created_at: "2026-08-01T10:00:00Z", updated_at: "2026-09-01T10:00:00Z" },
+];
+
+const priceTiersUmang: PriceTier[] = [
+  { id: "tier-umang-season-reg", tenant_id: UMANG_TENANT_ID, pass_type_id: PT_UMANG_SEASON, name: "Regular", price_paise: paise(150000), starts_at: "2026-08-15T00:00:00Z", ends_at: "2026-10-06T23:59:00Z", quantity_cap: null, quantity_sold: 180, sort_order: 0, created_at: "2026-09-06T15:00:00Z", updated_at: "2026-09-06T15:00:00Z" },
+  { id: "tier-umang-single-reg", tenant_id: UMANG_TENANT_ID, pass_type_id: PT_UMANG_SINGLE, name: "Regular", price_paise: paise(40000), starts_at: "2026-08-15T00:00:00Z", ends_at: "2026-10-06T23:59:00Z", quantity_cap: null, quantity_sold: 260, sort_order: 0, created_at: "2026-09-06T15:00:00Z", updated_at: "2026-09-06T15:00:00Z" },
+  { id: "tier-umang-couple-reg", tenant_id: UMANG_TENANT_ID, pass_type_id: PT_UMANG_COUPLE, name: "Regular", price_paise: paise(80000), starts_at: "2026-08-15T00:00:00Z", ends_at: "2026-10-06T23:59:00Z", quantity_cap: null, quantity_sold: 70, sort_order: 0, created_at: "2026-09-06T15:00:00Z", updated_at: "2026-09-06T15:00:00Z" },
+];
+
+export const priceTiers: PriceTier[] = [...priceTiersBase, ...priceTiersPartyPlot, ...priceTiersUmang];
+
+// USR-06/USR-29/USR-30/P0-6: both add-ons below were quoted at booking but
+// never actually delivered — no parking-gate scan for PARKING_4W, no
+// ledger/topup for FNB_WALLET_500 — and checkout never charged them either.
+// status "off_sale" keeps the historical fixture data (past orders still
+// reference these ids) while listAddons() (repo.ts) excludes them from
+// anything new. Flip back to "on_sale" only once each is wired end-to-end:
+// charged, itemized, and actually fulfilled.
 export const addons: AddOn[] = [
   {
     id: "addon-parking-4w",
@@ -252,7 +535,7 @@ export const addons: AddOn[] = [
     total_quantity: 3000,
     sold_quantity: 1200,
     zone_id: null,
-    status: "on_sale",
+    status: "off_sale",
     created_at: "2026-01-15T10:00:00Z",
     updated_at: "2026-09-01T10:00:00Z",
   },
@@ -268,7 +551,7 @@ export const addons: AddOn[] = [
     total_quantity: null,
     sold_quantity: 420,
     zone_id: null,
-    status: "on_sale",
+    status: "off_sale",
     created_at: "2026-01-15T10:00:00Z",
     updated_at: "2026-09-01T10:00:00Z",
   },

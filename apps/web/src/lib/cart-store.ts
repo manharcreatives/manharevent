@@ -33,6 +33,7 @@ interface CartActions {
     pricePaise: number
   ) => void;
   setQuantity: (qty: number) => void;
+  setNightIds: (nightIds: string[]) => void;
   toggleAddon: (addonId: string) => void;
   setPromo: (code: string, discountPaise: number) => void;
   clearPromo: () => void;
@@ -75,6 +76,10 @@ export const useCartStore = create<CartState & CartActions>()(
         set({ passTypeId, passTypeName, passTypeAdmits: admits, passTypeNightIds: nightIds, pricePaise, step: 2 }),
 
       setQuantity: (qty) => set({ quantity: qty, step: 3 }),
+
+      // USR-31: single-night passes don't have a fixed night_ids — the buyer
+      // picks one, and this is what flows into the pass/QR at pay time.
+      setNightIds: (nightIds) => set({ passTypeNightIds: nightIds }),
 
       toggleAddon: (addonId) =>
         set((s) => ({

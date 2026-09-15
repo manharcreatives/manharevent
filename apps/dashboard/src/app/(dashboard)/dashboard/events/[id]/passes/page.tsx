@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Tag, Users, Pencil, Trash2, IndianRupee, X, Moon } from "lucide-react";
+import { Plus, Tag, Users, Pencil, Trash2, IndianRupee, X, Moon, Check } from "lucide-react";
 import {
   Button,
   Input,
@@ -12,6 +12,7 @@ import {
   toast,
 } from "@manhar-garba/ui";
 import type { PassType } from "@manhar-garba/domain";
+import { paise } from "@manhar-garba/domain";
 import { useDashboardStore, type PassTypeDraft } from "@/lib/dashboard-store";
 import { useEventScope } from "@/lib/use-event";
 
@@ -52,6 +53,35 @@ export default function PassesPage() {
     ? passTypes.find((p) => p.id === editorFor)
     : undefined;
 
+  // Quick-add: one single-night pass per night of the event in one click,
+  // rather than opening the editor N times. Price defaults to ₹299 — meant
+  // to be tuned per night with the inline price editor below, not shipped
+  // as-is (a Thursday pass rarely sells for the same price as a Saturday).
+  function addOneNightPerNightPasses() {
+    if (!event || nights.length === 0) return;
+    const zoneId = zones[0]?.id;
+    if (!zoneId) {
+      toast.error("Add a zone first — every pass type needs one.");
+      return;
+    }
+    for (const night of nights) {
+      addPassType(event.id, {
+        name: `Single Night — ${night.theme ?? `Night ${night.night_number}`}`,
+        zoneId,
+        kind: "single_night",
+        admits: 1,
+        nightIds: [night.id],
+        totalQuantity: 500,
+        maxPerOrder: 10,
+        pricePaise: 29900,
+        description: `${night.theme ?? `Night ${night.night_number}`} only. Admits 1.`,
+      });
+    }
+    toast.success(`${nights.length} single-night passes created`, {
+      description: "Edit each one's price below — they were all created at ₹299.",
+    });
+  }
+
   function openNew(patch: Partial<PassTypeDraft> = {}) {
     setSeed(patch);
     setEditorFor("new");
@@ -87,6 +117,14 @@ export default function PassesPage() {
               + {p.label}
             </button>
           ))}
+          {nights.length > 1 && (
+            <button
+              onClick={addOneNightPerNightPasses}
+              className="rounded-full border border-dashed border-border px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            >
+              + Single night — one per night ({nights.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -260,7 +298,7 @@ function PassTypeEditor({
   onSave: (draft: PassTypeDraft) => void;
   onCancel: () => void;
 }) {
-  const { zones, nights, priceTiers } = useEventScope();
+  const { zones, nights, priceTiers, passTypes } = useEventScope();
   const existingPrice = initial
     ? priceTiers.find((t) => t.pass_type_id === initial.id)?.price_paise
     : undefined;
@@ -279,6 +317,23 @@ function PassTypeEditor({
   );
   const [description, setDescription] = useState(initial?.description ?? "");
   const [error, setError] = useState<string | null>(null);
+
+  // ADM-42: advisory only — sums every pass type's total_quantity×admits in
+  // this zone for each selected night, against the zone's capacity. Doesn't
+  // block save (an organizer may deliberately oversell general admission),
+  // just surfaces it before it becomes a gate-night surprise.
+  const zoneCapacity = zones.find((z) => z.id === zoneId)?.capacity;
+  const admitsNum = Number(admits) || 0;
+  const quantityNum = Number(quantity) || 0;
+  const oversoldNights = nightIds.reduce<{ id: string; night_number: number }[]>((acc, nightId) => {
+    const night = nights.find((n) => n.id === nightId);
+    if (!night || zoneCapacity === undefined) return acc;
+    const committed = passTypes
+      .filter((pt) => pt.id !== initial?.id && pt.zone_id === zoneId && pt.night_ids.includes(night.id))
+      .reduce((sum, pt) => sum + pt.total_quantity * pt.admits, 0);
+    if (committed + quantityNum * admitsNum > zoneCapacity) acc.push(night);
+    return acc;
+  }, []);
 
   function toggleNight(id: string) {
     setError(null);
@@ -303,6 +358,19 @@ function PassTypeEditor({
     if (!Number.isInteger(qty) || qty < 1) {
       setError("Enter how many of these you're putting on sale.");
       return;
+    }
+    // ADM-42: this is a UI-level guard only — nothing here actually locks
+    // inventory, so a second organizer editing the same pass type at the
+    // same moment could still both pass this check. The real constraint
+    // (a row lock / unique-capacity constraint) belongs to the DB phase.
+    if (initial) {
+      const committed = initial.sold_quantity + initial.held_quantity;
+      if (qty < committed) {
+        setError(
+          `Can't drop quantity below ${committed} — ${initial.sold_quantity} already sold and ${initial.held_quantity} held can't be un-committed.`
+        );
+        return;
+      }
     }
     const rupees = Number(priceRupees);
     if (!initial && (!Number.isFinite(rupees) || rupees <= 0)) {
@@ -463,6 +531,14 @@ function PassTypeEditor({
         />
       </Field>
 
+      {oversoldNights.length > 0 && (
+        <p className="text-xs text-warning">
+          This oversells zone capacity ({zoneCapacity} admits) on{" "}
+          {oversoldNights.map((n) => `Night ${n.night_number}`).join(", ")} once every pass type in this zone
+          is counted at full admits × quantity.
+        </p>
+      )}
+
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}
@@ -487,7 +563,7 @@ function PassTypeEditor({
  * ₹6,999" needs exactly this and nothing more elaborate.
  */
 function PriceTierPanel({ passTypeId }: { passTypeId: string }) {
-  const { priceTiers, addPriceTier, removePriceTier } = useDashboardStore();
+  const { priceTiers, addPriceTier, updatePriceTier, removePriceTier } = useDashboardStore();
   const tiers = priceTiers
     .filter((t) => t.pass_type_id === passTypeId)
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -495,6 +571,27 @@ function PriceTierPanel({ passTypeId }: { passTypeId: string }) {
   const [name, setName] = useState("");
   const [rupees, setRupees] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [editingTierId, setEditingTierId] = useState<string | null>(null);
+  const [editRupees, setEditRupees] = useState("");
+
+  function startEdit(tierId: string, currentPaise: number) {
+    setEditingTierId(tierId);
+    setEditRupees(String(Math.round(currentPaise / 100)));
+  }
+
+  function saveEdit(tierId: string) {
+    const value = Number(editRupees);
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("Enter a price in rupees.");
+      return;
+    }
+    // ADM-control pricing: this is the one place a tier's price changes —
+    // every buyer-facing number (web "from ₹", checkout total) reads the
+    // same price_paise, so this is what actually moves the public price.
+    updatePriceTier(tierId, { price_paise: paise(Math.round(value * 100)) });
+    setEditingTierId(null);
+    toast.success("Price updated");
+  }
 
   function add() {
     if (!name.trim()) {
@@ -519,26 +616,56 @@ function PriceTierPanel({ passTypeId }: { passTypeId: string }) {
         {tiers.map((t) => (
           <li key={t.id} className="flex items-center gap-3 text-sm">
             <span className="flex-1 text-foreground">{t.name}</span>
-            <span className="tabular text-muted-foreground">
-              <Money paise={t.price_paise} />
-            </span>
-            <span className="tabular text-xs text-muted-foreground">
-              {t.quantity_sold.toLocaleString("en-IN")} sold
-            </span>
-            <button
-              onClick={() => {
-                if (tiers.length === 1) {
-                  toast.error("A pass type needs at least one price tier.");
-                  return;
-                }
-                removePriceTier(t.id);
-                toast.success(`${t.name} tier removed`);
-              }}
-              aria-label={`Remove ${t.name} tier`}
-              className="text-muted-foreground transition-colors hover:text-destructive"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            {editingTierId === t.id ? (
+              <>
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  ₹
+                  <Input
+                    value={editRupees}
+                    onChange={(e) => setEditRupees(e.target.value.replace(/[^\d]/g, ""))}
+                    inputMode="numeric"
+                    autoFocus
+                    className="tabular h-7 w-20"
+                  />
+                </span>
+                <button onClick={() => saveEdit(t.id)} aria-label={`Save ${t.name} price`} className="text-success hover:text-success/80">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => setEditingTierId(null)} aria-label="Cancel" className="text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="tabular text-muted-foreground">
+                  <Money paise={t.price_paise} />
+                </span>
+                <span className="tabular text-xs text-muted-foreground">
+                  {t.quantity_sold.toLocaleString("en-IN")} sold
+                </span>
+                <button
+                  onClick={() => startEdit(t.id, t.price_paise)}
+                  aria-label={`Edit ${t.name} price`}
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (tiers.length === 1) {
+                      toast.error("A pass type needs at least one price tier.");
+                      return;
+                    }
+                    removePriceTier(t.id);
+                    toast.success(`${t.name} tier removed`);
+                  }}
+                  aria-label={`Remove ${t.name} tier`}
+                  className="text-muted-foreground transition-colors hover:text-destructive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
           </li>
         ))}
       </ul>

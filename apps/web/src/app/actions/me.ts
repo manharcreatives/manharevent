@@ -1,7 +1,16 @@
 "use server";
 
 import type { PassStatus } from "@manhar-garba/domain";
-import { listOrdersByPhone, listPassesForOrder, listZones, getEvent } from "@manhar-garba/mock-data";
+import {
+  listOrdersByPhone,
+  listPassesForOrder,
+  listZones,
+  listPassTypes,
+  listPassHolders,
+  getEvent,
+  getPass,
+  getOrder,
+} from "@manhar-garba/mock-data";
 
 // FE-11: closes the "/me/*" gap flagged in PROGRESS.md — client components
 // can't call mock-data directly (the in-memory store only exists in this
@@ -106,4 +115,56 @@ export async function getMyAccountDataAction(phone: string): Promise<MyAccountDa
   }
 
   return { passes, orders: orderSummaries };
+}
+
+export interface MyPassDetail {
+  id: string;
+  passCode: string;
+  qrPayload: string;
+  status: PassStatus;
+  admits: number;
+  nightCount: number;
+  zoneName: string | null;
+  zoneColor: string | null;
+  passTypeName: string | null;
+  /** Named holder for this specific pass, falling back to the buyer — null only for a genuinely unnamed (guest) pass. */
+  holderName: string | null;
+}
+
+// FE-11 fix (P-D6): the pass-detail route used to call mock-data's getPass()
+// straight from the client, which (a) put mock-data in the client bundle and
+// (b) let anyone open any pass id with no ownership check. This mirrors
+// getMyAccountDataAction's phone-bridging pattern, but also verifies the
+// pass's order actually belongs to the requesting phone before returning it.
+export async function getMyPassDetailAction(
+  phone: string,
+  passId: string
+): Promise<MyPassDetail | null> {
+  const pass = await getPass(passId);
+  if (!pass) return null;
+
+  const order = await getOrder(pass.order_id);
+  if (!order || order.buyer_phone !== phone) return null;
+
+  const [zones, passTypes, holders] = await Promise.all([
+    listZones(pass.event_id),
+    listPassTypes(pass.event_id),
+    listPassHolders(pass.id),
+  ]);
+  const zone = zones.find((z) => z.id === pass.zone_id);
+  const passType = passTypes.find((pt) => pt.id === pass.pass_type_id);
+  const primaryHolder = holders.find((h) => h.holder_index === 1) ?? holders[0];
+
+  return {
+    id: pass.id,
+    passCode: pass.pass_code,
+    qrPayload: pass.qr_payload,
+    status: pass.status,
+    admits: pass.admits,
+    nightCount: pass.night_ids.length,
+    zoneName: zone?.name ?? null,
+    zoneColor: zone?.color ?? null,
+    passTypeName: passType?.name ?? null,
+    holderName: primaryHolder?.full_name || order.buyer_name || null,
+  };
 }

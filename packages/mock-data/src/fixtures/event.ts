@@ -1,5 +1,5 @@
 import type { Event, EventNight, Venue, Zone, Gate, GateZone, Artist, NightLineup } from "@manhar-garba/domain";
-import { TENANT_ID } from "./tenant";
+import { TENANT_ID, UMANG_TENANT_ID } from "./tenant";
 
 export const EVENT_ID = "ev-navratri-2026-ahmedabad";
 export const VENUE_ID = "venue-sardar-patel-ground";
@@ -71,7 +71,7 @@ const THEMES = [
   { theme: "Grand Finale", theme_color: "#FFD700", dress_code: "Traditional" },
 ];
 
-export const eventNights: EventNight[] = NIGHT_IDS.map((id, i) => ({
+const eventNightsBase: EventNight[] = NIGHT_IDS.map((id, i) => ({
   id,
   tenant_id: TENANT_ID,
   event_id: EVENT_ID,
@@ -89,7 +89,7 @@ export const eventNights: EventNight[] = NIGHT_IDS.map((id, i) => ({
   updated_at: "2026-01-15T10:00:00Z",
 }));
 
-export const zones: Zone[] = [
+const zonesBase: Zone[] = [
   {
     id: ZONE_VIP_ID,
     tenant_id: TENANT_ID,
@@ -131,14 +131,14 @@ export const zones: Zone[] = [
   },
 ];
 
-export const gates: Gate[] = [
+const gatesBase: Gate[] = [
   { id: GATE_G1_ID, tenant_id: TENANT_ID, event_id: EVENT_ID, code: "G1", name: "Gate 1 — VIP Entrance", direction: "entry", created_at: "2026-01-15T10:00:00Z", updated_at: "2026-01-15T10:00:00Z" },
   { id: GATE_G2_ID, tenant_id: TENANT_ID, event_id: EVENT_ID, code: "G2", name: "Gate 2 — Gold North", direction: "both", created_at: "2026-01-15T10:00:00Z", updated_at: "2026-01-15T10:00:00Z" },
   { id: GATE_G3_ID, tenant_id: TENANT_ID, event_id: EVENT_ID, code: "G3", name: "Gate 3 — Gold South", direction: "both", created_at: "2026-01-15T10:00:00Z", updated_at: "2026-01-15T10:00:00Z" },
   { id: GATE_G4_ID, tenant_id: TENANT_ID, event_id: EVENT_ID, code: "G4", name: "Gate 4 — General", direction: "both", created_at: "2026-01-15T10:00:00Z", updated_at: "2026-01-15T10:00:00Z" },
 ];
 
-export const gateZones: GateZone[] = [
+const gateZonesBase: GateZone[] = [
   { gate_id: GATE_G1_ID, zone_id: ZONE_VIP_ID },
   { gate_id: GATE_G2_ID, zone_id: ZONE_GOLD_ID },
   { gate_id: GATE_G3_ID, zone_id: ZONE_GOLD_ID },
@@ -156,3 +156,217 @@ export const nightLineup: NightLineup[] = [
   { id: "lineup-2", tenant_id: TENANT_ID, night_id: "night-05", artist_id: "artist-osman-mir", slot_start: null, slot_end: null, billing: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-01-15T10:00:00Z" },
   { id: "lineup-3", tenant_id: TENANT_ID, night_id: "night-09", artist_id: "artist-aishwarya-majmudar", slot_start: null, slot_end: null, billing: 0, created_at: "2026-01-15T10:00:00Z", updated_at: "2026-01-15T10:00:00Z" },
 ];
+
+// ─── Second event: an "open ground" — one zone, no zone map ──────────────────
+// Most Garba grounds in practice sell a single general/season ticket with no
+// zone split at all — the big 3-zone event above is the exception, not the
+// rule. This event exercises that path end to end (dashboard "Open ground"
+// wizard mode, web's zone-less book flow, admin-editable per-night pricing)
+// without touching the zoned event or the domain model — `zone_id` stays
+// required, this event just happens to have exactly one zone.
+
+export const EVENT_ID_PP = "ev-satellite-garba-2026";
+export const VENUE_ID_PP = "venue-amrapali-party-plot";
+export const ZONE_PP_GENERAL_ID = "zone-pp-general-001";
+export const GATE_PP1_ID = "gate-pp1";
+
+// Thu/Fri/Sat, the same opening weekend as the big ground's nights 1-3 — two
+// grounds running in parallel is the realistic case for a small party plot.
+export const NIGHT_IDS_PP = ["night-pp-01", "night-pp-02", "night-pp-03"];
+
+export const venuePartyPlot: Venue = {
+  id: VENUE_ID_PP,
+  tenant_id: TENANT_ID,
+  name: "Amrapali Party Plot",
+  address: "Satellite Road, Satellite",
+  city: "Ahmedabad",
+  state: "Gujarat",
+  pincode: "380015",
+  lat: 23.0258,
+  lng: 72.5297,
+  google_maps_url: "https://maps.google.com/?q=Amrapali+Party+Plot+Ahmedabad",
+  map_image_url: null,
+  total_capacity: 1200,
+  created_at: "2026-01-15T10:00:00Z",
+  updated_at: "2026-01-15T10:00:00Z",
+};
+
+export const eventPartyPlot: Event = {
+  id: EVENT_ID_PP,
+  tenant_id: TENANT_ID,
+  venue_id: VENUE_ID_PP,
+  slug: "satellite-garba-nights",
+  title: "Satellite Garba Nights",
+  subtitle: "Three nights. One ground, one ticket.",
+  description:
+    "A neighbourhood party-plot Garba across three nights — one general ground, no zones, just a pass. Season covers all three nights; single-night and couple passes are sold per night.",
+  status: "published",
+  starts_on: "2026-10-01",
+  ends_on: "2026-10-03",
+  timezone: "Asia/Kolkata",
+  cover_url: null,
+  og_image_url: null,
+  category: "garba",
+  reentry_policy: "unlimited",
+  reentry_window_minutes: null,
+  published_at: "2026-08-15T10:00:00Z",
+  created_at: "2026-01-15T10:00:00Z",
+  updated_at: "2026-08-15T10:00:00Z",
+};
+
+const PP_NIGHTS = [
+  { id: "night-pp-01", date: "2026-10-01", theme: "Opening Night", theme_color: "#F5F5F5", dress_code: "Any traditional" },
+  { id: "night-pp-02", date: "2026-10-02", theme: "Friday Raas", theme_color: "#C41E3A", dress_code: "Red" },
+  { id: "night-pp-03", date: "2026-10-03", theme: "Saturday Finale", theme_color: "#FFD700", dress_code: "Traditional" },
+];
+
+export const eventNightsPartyPlot: EventNight[] = PP_NIGHTS.map((n, i) => ({
+  id: n.id,
+  tenant_id: TENANT_ID,
+  event_id: EVENT_ID_PP,
+  night_number: i + 1,
+  date: n.date,
+  gates_open_at: `${n.date}T18:00:00+05:30`,
+  starts_at: `${n.date}T19:30:00+05:30`,
+  ends_at: `${n.date}T23:30:00+05:30`,
+  theme: n.theme,
+  theme_color: n.theme_color,
+  dress_code: n.dress_code,
+  notes: null,
+  status: "scheduled",
+  created_at: "2026-01-15T10:00:00Z",
+  updated_at: "2026-01-15T10:00:00Z",
+}));
+
+export const zonesPartyPlot: Zone[] = [
+  {
+    id: ZONE_PP_GENERAL_ID,
+    tenant_id: TENANT_ID,
+    event_id: EVENT_ID_PP,
+    code: "GENERAL",
+    name: "General Ground",
+    description: "Open ground, standing. One ticket, no zones.",
+    capacity: 1200,
+    color: "hsl(14 92% 56%)",
+    sort_order: 0,
+    created_at: "2026-01-15T10:00:00Z",
+    updated_at: "2026-01-15T10:00:00Z",
+  },
+];
+
+export const gatesPartyPlot: Gate[] = [
+  { id: GATE_PP1_ID, tenant_id: TENANT_ID, event_id: EVENT_ID_PP, code: "G1", name: "Gate 1 — Main Entry", direction: "both", created_at: "2026-01-15T10:00:00Z", updated_at: "2026-01-15T10:00:00Z" },
+];
+
+export const gateZonesPartyPlot: GateZone[] = [
+  { gate_id: GATE_PP1_ID, zone_id: ZONE_PP_GENERAL_ID },
+];
+
+// ─── Third event: Umang Garba Group's own ground (second demo organizer) ─────
+// Same open-ground shape as the party-plot event above, but a genuinely
+// different tenant (UMANG_TENANT_ID, not Manhar's) — this is what proves
+// tenant isolation actually works, not just a second event under one owner.
+
+export const EVENT_ID_UMANG = "ev-umang-navratri-2026";
+export const VENUE_ID_UMANG = "venue-umang-ground";
+export const ZONE_UMANG_GENERAL_ID = "zone-umang-general-001";
+export const GATE_UMANG1_ID = "gate-umang1";
+export const NIGHT_IDS_UMANG = ["night-umang-01", "night-umang-02", "night-umang-03"];
+
+export const venueUmang: Venue = {
+  id: VENUE_ID_UMANG,
+  tenant_id: UMANG_TENANT_ID,
+  name: "Umang Ground",
+  address: "Sayajigunj",
+  city: "Vadodara",
+  state: "Gujarat",
+  pincode: "390005",
+  lat: 22.3095,
+  lng: 73.1927,
+  google_maps_url: "https://maps.google.com/?q=Umang+Ground+Vadodara",
+  map_image_url: null,
+  total_capacity: 2000,
+  created_at: "2026-09-06T15:00:00Z",
+  updated_at: "2026-09-06T15:00:00Z",
+};
+
+export const eventUmang: Event = {
+  id: EVENT_ID_UMANG,
+  tenant_id: UMANG_TENANT_ID,
+  venue_id: VENUE_ID_UMANG,
+  slug: "umang-navratri-2026",
+  title: "Umang Navratri 2026",
+  subtitle: "Three nights. One ground, one ticket.",
+  description:
+    "Three nights of Garba in Vadodara — one general ground, no zones, just a pass. Season covers all three nights; single-night and couple passes are sold per night.",
+  status: "published",
+  starts_on: "2026-10-04",
+  ends_on: "2026-10-06",
+  timezone: "Asia/Kolkata",
+  cover_url: null,
+  og_image_url: null,
+  category: "garba",
+  reentry_policy: "unlimited",
+  reentry_window_minutes: null,
+  published_at: "2026-08-20T10:00:00Z",
+  created_at: "2026-09-06T15:00:00Z",
+  updated_at: "2026-08-20T10:00:00Z",
+};
+
+const UMANG_NIGHTS = [
+  { id: "night-umang-01", date: "2026-10-04", theme: "Opening Night", theme_color: "#F5F5F5", dress_code: "Any traditional" },
+  { id: "night-umang-02", date: "2026-10-05", theme: "Colours of Vadodara", theme_color: "#C41E3A", dress_code: "Red" },
+  { id: "night-umang-03", date: "2026-10-06", theme: "Grand Finale", theme_color: "#FFD700", dress_code: "Traditional" },
+];
+
+export const eventNightsUmang: EventNight[] = UMANG_NIGHTS.map((n, i) => ({
+  id: n.id,
+  tenant_id: UMANG_TENANT_ID,
+  event_id: EVENT_ID_UMANG,
+  night_number: i + 1,
+  date: n.date,
+  gates_open_at: `${n.date}T18:00:00+05:30`,
+  starts_at: `${n.date}T19:30:00+05:30`,
+  ends_at: `${n.date}T23:30:00+05:30`,
+  theme: n.theme,
+  theme_color: n.theme_color,
+  dress_code: n.dress_code,
+  notes: null,
+  status: "scheduled",
+  created_at: "2026-09-06T15:00:00Z",
+  updated_at: "2026-09-06T15:00:00Z",
+}));
+
+export const zonesUmang: Zone[] = [
+  {
+    id: ZONE_UMANG_GENERAL_ID,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    code: "GENERAL",
+    name: "General Ground",
+    description: "Open ground, standing. One ticket, no zones.",
+    capacity: 2000,
+    color: "hsl(14 92% 56%)",
+    sort_order: 0,
+    created_at: "2026-09-06T15:00:00Z",
+    updated_at: "2026-09-06T15:00:00Z",
+  },
+];
+
+export const gatesUmang: Gate[] = [
+  { id: GATE_UMANG1_ID, tenant_id: UMANG_TENANT_ID, event_id: EVENT_ID_UMANG, code: "G1", name: "Gate 1 — Main Entry", direction: "both", created_at: "2026-09-06T15:00:00Z", updated_at: "2026-09-06T15:00:00Z" },
+];
+
+export const gateZonesUmang: GateZone[] = [
+  { gate_id: GATE_UMANG1_ID, zone_id: ZONE_UMANG_GENERAL_ID },
+];
+
+// ─── Merged exports — every repo.ts list function already filters by
+// event_id, so appending each event's rows here is all that's needed for it
+// to show up everywhere the others do. ────────────────────────────────────────
+export const events: Event[] = [event, eventPartyPlot, eventUmang];
+export const venues: Venue[] = [venue, venuePartyPlot, venueUmang];
+export const eventNights: EventNight[] = [...eventNightsBase, ...eventNightsPartyPlot, ...eventNightsUmang];
+export const zones: Zone[] = [...zonesBase, ...zonesPartyPlot, ...zonesUmang];
+export const gates: Gate[] = [...gatesBase, ...gatesPartyPlot, ...gatesUmang];
+export const gateZones: GateZone[] = [...gateZonesBase, ...gateZonesPartyPlot, ...gateZonesUmang];

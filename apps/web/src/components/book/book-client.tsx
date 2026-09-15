@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { Button, Money, ZoneMap, cn } from "@manhar-garba/ui";
+import { Button, Money, ZoneMap, cn, toast } from "@manhar-garba/ui";
 import type { ZoneRegion } from "@manhar-garba/ui";
 import { computeFees } from "@manhar-garba/domain";
 import { useCartStore } from "@/lib/cart-store";
@@ -41,6 +41,13 @@ export interface BookAddon {
   pricePaise: number;
 }
 
+export interface BookNight {
+  id: string;
+  nightNumber: number;
+  date: string;
+  theme: string | null;
+}
+
 interface BookClientProps {
   eventSlug: string;
   eventId: string;
@@ -49,6 +56,7 @@ interface BookClientProps {
   zones: BookZone[];
   passTypes: BookPassType[];
   addons: BookAddon[];
+  nights: BookNight[];
 }
 
 // Real zones don't carry an SVG floor-plan of their own (2026-09-12 pivot —
@@ -75,9 +83,11 @@ export function BookClient({
   zones,
   passTypes,
   addons,
+  nights,
 }: BookClientProps) {
   const router = useRouter();
   const t = useTranslations("Book");
+  const locale = useLocale();
   const tEvent = useTranslations("Event");
   const cart = useCartStore();
   const { phone, name } = useAuthStore();
@@ -125,8 +135,22 @@ export function BookClient({
   });
 
   const selectedZone = zones.find((z) => z.id === cart.zoneId) ?? null;
+  // Open ground (Type A — UI-level only): zone_id stays required on every
+  // pass type, this event just happens to have exactly one. No zone map, no
+  // zone step for the buyer to make a choice that isn't actually a choice.
+  const isOpenGround = zones.length <= 1;
+  const singleZone = zones.length === 1 ? zones[0]! : null;
   const passTypesForZone = cart.zoneId ? passTypes.filter((pt) => pt.zoneId === cart.zoneId) : [];
   const selectedPassType = passTypes.find((pt) => pt.id === cart.passTypeId) ?? null;
+  // A zone with exactly one single_night pass type ("Any One Night") is a
+  // single SKU meant to cover every night at the same price — the buyer has
+  // to pick which night. A zone with several (e.g. separate Thu/Fri/Sat
+  // passes, each its own price) has already answered "which night" by
+  // however the buyer picks the card — showing a picker on top would let
+  // them override a Friday pass to Thursday.
+  const isGenericSingleNight = (pt: { zoneId: string; kind: string } | null) =>
+    pt?.kind === "single_night" &&
+    passTypes.filter((p) => p.zoneId === pt.zoneId && p.kind === "single_night").length === 1;
   const selectedAddons = addons.filter((a) => cart.addonIds.includes(a.id));
 
   const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.pricePaise, 0);
@@ -140,9 +164,15 @@ export function BookClient({
     totalPaise: total,
   } = computeFees(subtotal);
 
+  const needsNightPick = isGenericSingleNight(selectedPassType);
+  const nightPicked = cart.passTypeNightIds.length > 0;
+  const nightMissing = needsNightPick && !nightPicked;
+
   const stepDone = [Boolean(selectedZone), Boolean(selectedPassType), Boolean(selectedPassType), Boolean(selectedPassType)];
   const currentStep = selectedPassType ? 3 : selectedZone ? 2 : 1;
-  const canPay = Boolean(selectedPassType) && cart.quantity > 0;
+  const canPay = Boolean(selectedPassType) && cart.quantity > 0 && !nightMissing;
+  const nextStepLabel = nightMissing ? t("pickNightTitle") : t("step2Title");
+  const nextStepTarget = selectedPassType ? 3 : 2;
 
   function handleSelectZone(zoneId: string) {
     const zone = zones.find((z) => z.id === zoneId);
@@ -151,8 +181,17 @@ export function BookClient({
 
   function handleSelectPassType(pt: BookPassType) {
     if (pt.available <= 0) return;
-    cart.setPassType(pt.id, pt.name, pt.admits, pt.nightIds, pt.pricePaise);
+    // USR-31: a *generic* single-night pass has no fixed night of its own —
+    // the buyer picks one below, so it starts unset instead of defaulting to
+    // whatever night the fixture happened to list. A pass already specific
+    // to one night (Track-2 open-ground per-night pricing) keeps its night.
+    const nightIds = isGenericSingleNight(pt) ? [] : pt.nightIds;
+    cart.setPassType(pt.id, pt.name, pt.admits, nightIds, pt.pricePaise);
     if (cart.quantity < pt.minPerOrder) cart.setQuantity(pt.minPerOrder);
+  }
+
+  function handleSelectNight(nightId: string) {
+    cart.setNightIds([nightId]);
   }
 
   async function handleContinueToPay() {
@@ -166,6 +205,11 @@ export function BookClient({
       });
       cart.setOrderId(orderId);
       router.push(`/checkout/${orderId}`);
+    } catch {
+      // USR-14: this used to fail silently — isPending reset and the button
+      // just went back to normal, with no sign anything had gone wrong. The
+      // same button is the retry: it's re-enabled the moment isPending clears.
+      toast.error(t("continueToPayError"));
     } finally {
       setIsPending(false);
     }
@@ -272,6 +316,23 @@ export function BookClient({
         <div className="space-y-10">
           {/* ── Step 1 — Zone ───────────────────────────────────────────── */}
           <Step id={1} title={t("step1Title")} subtitle={t("step1Sub")} stepLabel={t("stepOf", { current: 1, total: TOTAL_STEPS })}>
+            {isOpenGround && singleZone ? (
+              // Open ground: nothing to choose, so nothing to pick from — no
+              // zone map, no zone cards. Auto-selected on load (below).
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4">
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold uppercase tracking-wide"
+                  style={{ backgroundColor: singleZone.color ?? undefined, color: inkOn(singleZone.color) }}
+                  aria-hidden="true"
+                >
+                  <Check className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{singleZone.name}</p>
+                  <p className="text-xs text-muted-foreground">{t("openGroundNote")}</p>
+                </div>
+              </div>
+            ) : (
             <div className="grid gap-5 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-start">
               <div className="mx-auto w-full max-w-[240px] sm:mx-0">
                 <ZoneMap zones={zoneRegions} selected={cart.zoneId ?? undefined} onSelect={handleSelectZone} />
@@ -329,6 +390,7 @@ export function BookClient({
                 })}
               </div>
             </div>
+            )}
           </Step>
 
           {/* ── Step 2 — Pass type ──────────────────────────────────────── */}
@@ -411,7 +473,51 @@ export function BookClient({
             {!selectedPassType ? (
               <Placeholder>{t("pickPassFirst")}</Placeholder>
             ) : (
-              <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface p-4">
+              <div className="space-y-4">
+                {needsNightPick && (
+                  <div className="rounded-xl border border-border bg-surface p-4">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                      <Moon className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t("pickNightTitle")}
+                    </p>
+                    {nights.length === 0 ? (
+                      <p className="mt-2 text-xs text-muted-foreground">{t("pickPassFirst")}</p>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {nights.map((n) => {
+                          const isSelected = cart.passTypeNightIds.includes(n.id);
+                          const dateLabel = new Date(`${n.date}T00:00:00+05:30`).toLocaleDateString(
+                            locale === "gu" ? "gu-IN" : locale === "hi" ? "hi-IN" : "en-IN",
+                            { day: "numeric", month: "short" }
+                          );
+                          return (
+                            <button
+                              key={n.id}
+                              type="button"
+                              onClick={() => handleSelectNight(n.id)}
+                              aria-pressed={isSelected}
+                              className={cn(
+                                "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                                isSelected
+                                  ? "border-primary bg-primary/8 ring-1 ring-primary/40"
+                                  : "border-border bg-surface-raised hover:border-primary/50"
+                              )}
+                            >
+                              <span className="block font-semibold text-foreground">
+                                {t("nightNumber", { number: n.nightNumber })}
+                              </span>
+                              <span className="block text-muted-foreground">
+                                {dateLabel}
+                                {n.theme ? ` · ${n.theme}` : ""}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface p-4">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -447,6 +553,7 @@ export function BookClient({
                   <p className="text-xs text-muted-foreground">
                     {t("min")} {selectedPassType.minPerOrder} · {t("max")} {selectedPassType.maxPerOrder}
                   </p>
+                </div>
                 </div>
               </div>
             )}
@@ -523,10 +630,10 @@ export function BookClient({
             <Button
               className="mt-5 w-full"
               size="lg"
-              onClick={canPay ? handleContinueToPay : () => jumpToStep(2)}
+              onClick={canPay ? handleContinueToPay : () => jumpToStep(nextStepTarget)}
               disabled={isPending}
             >
-              {isPending ? "…" : canPay ? t("continueToPay") : t("step2Title")}
+              {isPending ? "…" : canPay ? t("continueToPay") : nextStepLabel}
               <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
             </Button>
 
@@ -581,10 +688,10 @@ export function BookClient({
           <Button
             size="lg"
             className="shrink-0"
-            onClick={canPay ? handleContinueToPay : () => jumpToStep(2)}
+            onClick={canPay ? handleContinueToPay : () => jumpToStep(nextStepTarget)}
             disabled={isPending}
           >
-            {isPending ? "…" : canPay ? t("continueToPay") : t("step2Title")}
+            {isPending ? "…" : canPay ? t("continueToPay") : nextStepLabel}
           </Button>
         </div>
       </div>

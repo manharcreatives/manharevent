@@ -20,17 +20,25 @@ import type {
 } from "@manhar-garba/domain";
 import { paise, refundPercentFor } from "@manhar-garba/domain";
 
-import { tenant, tenantBranding } from "./fixtures/tenant";
-import { event, eventNights, venue, zones, gates, artists, nightLineup } from "./fixtures/event";
+import { tenant, tenantBranding, umangTenant, umangBranding } from "./fixtures/tenant";
+import { events, eventNights, venues, zones, gates, artists, nightLineup } from "./fixtures/event";
 import { passTypes, priceTiers, addons, promoCodes } from "./fixtures/pass-types";
 import { orders, orderItems, payments } from "./fixtures/orders";
 import { passes, passHolders, checkIns } from "./fixtures/passes";
 import { tenantApplications } from "./fixtures/tenant-applications";
 import { findEventContent } from "./fixtures/event-content";
 import { groupInvites } from "./fixtures/group-invites";
+import { readStoreFile, writeStoreFile, statStoreFile } from "./storage";
 
-// ─── In-memory mutation store ─────────────────────────────────────────────────
-// Reset on server restart — expected and fine for the mock stage.
+// ─── Shared mutation store ─────────────────────────────────────────────────────
+// `apps/web`, `apps/dashboard`, `apps/scanner` and `apps/marketing` are four
+// separate Next.js processes, each bundling its own copy of this module — so
+// module-level arrays alone don't survive even within one process (see the
+// `globalThis` pin below), let alone between processes. `storage.ts` adds a
+// single JSON file both layers on: every mutation writes it, and a short
+// background poll reloads it here when another process's write lands, so
+// register → approve → login → publish → buy → scan can be demoed across all
+// four dev servers without a real backend. See storage.ts for the full story.
 //
 // Pinned to `globalThis`, deliberately. Next.js bundles a Server Action and the
 // page that renders its result into SEPARATE server bundles, and each bundle
@@ -41,12 +49,27 @@ import { groupInvites } from "./fixtures/group-invites";
 // One object on `globalThis` gives every bundle in the process the same store.
 // (This is the same singleton trick a real Prisma/Supabase client needs here,
 // and it is why the fix survives the swap to a real backend.)
-//
-// Still true, and unchanged by this: each app (web, dashboard, marketing,
-// scanner) is its own Node process, so the store is NOT shared BETWEEN apps.
-// A real Postgres at P-02 is what makes that true.
+
+// Bump whenever a fixture change should force a reseed of an existing
+// `.data/store.json` — e.g. adding Umang's demo event/orders below. A file
+// written by an older version is discarded and rebuilt from fixtures rather
+// than merged; there's no migration story for a mock store, only "start
+// over". See PROGRESS.md — demo reset is `storeVersion` bump *or* manually
+// deleting `packages/mock-data/.data/store.json` and restarting the apps.
+const STORE_VERSION = 2;
 
 interface MockStore {
+  storeVersion: number;
+  tenants: Tenant[];
+  tenantBrandings: TenantBranding[];
+  events: Event[];
+  venues: Venue[];
+  zones: Zone[];
+  gates: Gate[];
+  eventNights: EventNight[];
+  passTypes: PassType[];
+  priceTiers: PriceTier[];
+  addons: AddOn[];
   orders: Order[];
   orderItems: OrderItem[];
   payments: Payment[];
@@ -59,13 +82,33 @@ interface MockStore {
   orderItemSeq: number;
   applicationSeq: number;
   refundSeq: number;
+  eventSeq: number;
 }
 
 const STORE_KEY = Symbol.for("@manhar-garba/mock-data.store");
-type GlobalWithStore = typeof globalThis & { [STORE_KEY]?: MockStore };
+const SYNC_KEY = Symbol.for("@manhar-garba/mock-data.sync");
+interface SyncState {
+  lastMtimeMs: number | null;
+  timer: ReturnType<typeof setInterval> | null;
+}
+type GlobalWithStore = typeof globalThis & {
+  [STORE_KEY]?: MockStore;
+  [SYNC_KEY]?: SyncState;
+};
 
 function createStore(): MockStore {
   return {
+    storeVersion: STORE_VERSION,
+    tenants: [tenant, umangTenant],
+    tenantBrandings: [tenantBranding, umangBranding],
+    events: [...events],
+    venues: [...venues],
+    zones: [...zones],
+    gates: [...gates],
+    eventNights: [...eventNights],
+    passTypes: [...passTypes],
+    priceTiers: [...priceTiers],
+    addons: [...addons],
     orders: [...orders],
     orderItems: [...orderItems],
     payments: [...payments],
@@ -79,14 +122,84 @@ function createStore(): MockStore {
     orderItemSeq: 200,
     applicationSeq: 100,
     refundSeq: 0,
+    eventSeq: 100,
   };
 }
 
-const store: MockStore =
-  ((globalThis as GlobalWithStore)[STORE_KEY] ??= createStore());
+function loadOrInitStore(): MockStore {
+  const fromDisk = readStoreFile<MockStore>();
+  if (fromDisk && fromDisk.data.storeVersion === STORE_VERSION) return fromDisk.data;
+  // Missing file, or a file written by an older STORE_VERSION (including
+  // every file from before this field existed, where it's `undefined` —
+  // always `!== STORE_VERSION`): reseed from fixtures rather than run with
+  // stale/partial shape.
+  const fresh = createStore();
+  void writeStoreFile(fresh);
+  return fresh;
+}
+
+const g = globalThis as GlobalWithStore;
+const store: MockStore = (g[STORE_KEY] ??= loadOrInitStore());
+const sync: SyncState = (g[SYNC_KEY] ??= { lastMtimeMs: statStoreFile(), timer: null });
+
+/** Replaces every array's CONTENTS in place (never the array reference), so
+ * every `_orders`/`_passes`/... alias below keeps pointing at a live array
+ * after a reload — reassigning `store.orders = next.orders` would silently
+ * strand those aliases on the old, now-frozen-in-time array. */
+function applySnapshot(next: MockStore): void {
+  for (const key of Object.keys(store) as (keyof MockStore)[]) {
+    const current = store[key];
+    const incoming = next[key];
+    if (Array.isArray(current) && Array.isArray(incoming)) {
+      const arr = current as unknown[];
+      arr.length = 0;
+      arr.push(...(incoming as unknown[]));
+    } else if (typeof incoming === "number") {
+      (store as unknown as Record<string, number>)[key] = incoming;
+    }
+  }
+}
+
+function reloadIfChanged(): void {
+  const mtimeMs = statStoreFile();
+  if (mtimeMs === null || mtimeMs === sync.lastMtimeMs) return;
+  const fromDisk = readStoreFile<MockStore>();
+  if (!fromDisk) return;
+  applySnapshot(fromDisk.data);
+  sync.lastMtimeMs = fromDisk.mtimeMs;
+}
+
+// Cross-process sync: another process's write shows up here within one tick
+// of this interval. `unref()` so the poll never keeps a Next.js dev/build
+// process alive on its own.
+if (!sync.timer) {
+  sync.timer = setInterval(reloadIfChanged, 300);
+  sync.timer.unref?.();
+}
+
+/** Call after any mutation. Writes the whole store to disk and records this
+ * process's own write so the next poll tick doesn't reload what it just
+ * wrote itself. Every mutating function below awaits this before returning,
+ * so a caller that gets a result back knows it is already on disk. */
+async function persist(): Promise<void> {
+  await writeStoreFile(store);
+  sync.lastMtimeMs = statStoreFile();
+}
 
 // Array aliases: same references as the store, so every mutation below lands in
-// the one shared object without rewriting hundreds of call sites.
+// the one shared object without rewriting hundreds of call sites. Safe across
+// a reload because `applySnapshot` mutates in place (see above), never
+// reassigns.
+const _tenants = store.tenants;
+const _tenantBrandings = store.tenantBrandings;
+const _events = store.events;
+const _venues = store.venues;
+const _zones = store.zones;
+const _gates = store.gates;
+const _eventNights = store.eventNights;
+const _passTypes = store.passTypes;
+const _priceTiers = store.priceTiers;
+const _addons = store.addons;
 const _orders = store.orders;
 const _orderItems = store.orderItems;
 const _payments = store.payments;
@@ -99,57 +212,268 @@ const _passHolders = store.passHolders;
 
 /** FE-07 handoff: supabase.from('tenants').select().eq('slug', slug).single() */
 export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
-  return tenant.slug === slug ? tenant : null;
+  return _tenants.find((t) => t.slug === slug) ?? null;
 }
 
 /** FE-07 handoff: supabase.from('tenant_branding').select().eq('tenant_id', id).single() */
 export async function getTenantBranding(tenantId: string): Promise<TenantBranding | null> {
-  return tenantBranding.tenant_id === tenantId ? tenantBranding : null;
+  return _tenantBrandings.find((b) => b.tenant_id === tenantId) ?? null;
 }
 
 // ─── Events ───────────────────────────────────────────────────────────────────
 
 /** FE-07 handoff: supabase.from('events').select().eq('slug', slug).single() */
 export async function getEventBySlug(slug: string): Promise<Event | null> {
-  return event.slug === slug ? event : null;
+  return _events.find((e) => e.slug === slug) ?? null;
 }
 
 /** FE-07 handoff: supabase.from('events').select().eq('id', id).single()
  *  Added FE-11 for /me/passes, which only has an order's event_id to work
  *  from, not its slug. */
 export async function getEvent(id: string): Promise<Event | null> {
-  return event.id === id ? event : null;
+  return _events.find((e) => e.id === id) ?? null;
 }
 
 /** FE-07 handoff: supabase.from('events').select().eq('tenant_id', tenantId).eq('status', 'published') */
 export async function listPublishedEvents(tenantId: string): Promise<Event[]> {
-  void tenantId;
-  return [event];
+  return _events.filter((e) => e.tenant_id === tenantId && e.status === "published");
+}
+
+/** FE-07 handoff: supabase.from('events').select().eq('tenant_id', tenantId).order('created_at', {ascending:false}) */
+export async function listEventsForTenant(tenantId: string): Promise<Event[]> {
+  return _events
+    .filter((e) => e.tenant_id === tenantId)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
 /** FE-07 handoff: supabase.from('venues').select().eq('id', id).single() */
 export async function getVenue(id: string): Promise<Venue | null> {
-  return venue.id === id ? venue : null;
+  return _venues.find((v) => v.id === id) ?? null;
 }
 
 /** FE-07 handoff: supabase.from('event_nights').select().eq('event_id', eventId).order('night_number') */
 export async function listEventNights(eventId: string): Promise<EventNight[]> {
-  return eventNights.filter((n) => n.event_id === eventId);
+  return _eventNights.filter((n) => n.event_id === eventId).sort((a, b) => a.night_number - b.night_number);
 }
 
 /** FE-07 handoff: supabase.from('event_nights').select().eq('id', id).single() */
 export async function getEventNight(id: string): Promise<EventNight | null> {
-  return eventNights.find((n) => n.id === id) ?? null;
+  return _eventNights.find((n) => n.id === id) ?? null;
 }
 
 /** FE-07 handoff: supabase.from('zones').select().eq('event_id', eventId).order('sort_order') */
 export async function listZones(eventId: string): Promise<Zone[]> {
-  return zones.filter((z) => z.event_id === eventId);
+  return _zones.filter((z) => z.event_id === eventId);
 }
 
 /** FE-07 handoff: supabase.from('gates').select().eq('event_id', eventId) */
 export async function listGates(eventId: string): Promise<Gate[]> {
-  return gates.filter((g) => g.event_id === eventId);
+  return _gates.filter((g) => g.event_id === eventId);
+}
+
+function slugifyTitle(title: string): string {
+  return title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "event";
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export interface CreateEventPassTypeInput {
+  name: string;
+  admits: number;
+  /** Integer paise — never a float, never rupees. */
+  pricePaise: number;
+  totalQuantity: number;
+}
+
+export interface CreateEventInput {
+  title: string;
+  city: string;
+  totalCapacity: number;
+  nightCount: number;
+  /** `YYYY-MM-DD` of the first night. */
+  startDate: string;
+  /** Open-ground-friendly starter passes — one zone, all covering every night. */
+  passTypes: CreateEventPassTypeInput[];
+}
+
+/**
+ * Creates a new event for an organizer's own tenant — open-ground shape only
+ * (one "General Ground" zone, one gate, all-night pass types). This is the
+ * one path the event wizard now saves through (dashboard-store.ts's
+ * client-only `createEvent` still exists for every other editing action —
+ * see PROGRESS.md's decision log for why only "create" moved here).
+ * FE-07 handoff: an RPC or a small transaction inserting events, venues,
+ * zones, gates, event_nights, pass_types and price_tiers together.
+ */
+export async function createEventForTenant(tenantId: string, input: CreateEventInput): Promise<Event> {
+  const now = new Date().toISOString();
+  const seq = String(++store.eventSeq).padStart(4, "0");
+  const eventId = `ev-mock-${seq}`;
+
+  let slug = slugifyTitle(input.title);
+  if (_events.some((e) => e.slug === slug)) slug = `${slug}-${eventId.slice(-4)}`;
+
+  const venueId = `venue-mock-${seq}`;
+  const venue: Venue = {
+    id: venueId,
+    tenant_id: tenantId,
+    name: `${input.title} Ground`,
+    address: null,
+    city: input.city,
+    state: null,
+    pincode: null,
+    lat: null,
+    lng: null,
+    google_maps_url: null,
+    map_image_url: null,
+    total_capacity: input.totalCapacity,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const zoneId = `zone-mock-${seq}`;
+  const zone: Zone = {
+    id: zoneId,
+    tenant_id: tenantId,
+    event_id: eventId,
+    code: "GENERAL",
+    name: "General Ground",
+    description: "Open ground, standing. One ticket, no zones.",
+    capacity: input.totalCapacity,
+    color: "hsl(14 92% 56%)",
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const gate: Gate = {
+    id: `gate-mock-${seq}`,
+    tenant_id: tenantId,
+    event_id: eventId,
+    code: "G1",
+    name: "Gate 1 — Main Entry",
+    direction: "both",
+    created_at: now,
+    updated_at: now,
+  };
+
+  const nightCount = Math.max(1, input.nightCount);
+  const nights: EventNight[] = Array.from({ length: nightCount }, (_, i) => {
+    const date = addDaysIso(input.startDate, i);
+    return {
+      id: `${eventId}-night-${String(i + 1).padStart(2, "0")}`,
+      tenant_id: tenantId,
+      event_id: eventId,
+      night_number: i + 1,
+      date,
+      gates_open_at: `${date}T18:00:00+05:30`,
+      starts_at: `${date}T19:30:00+05:30`,
+      ends_at: `${date}T23:30:00+05:30`,
+      theme: null,
+      theme_color: null,
+      dress_code: null,
+      notes: null,
+      status: "scheduled",
+      created_at: now,
+      updated_at: now,
+    };
+  });
+  const allNightIds = nights.map((n) => n.id);
+
+  const newPassTypes: PassType[] = [];
+  const newPriceTiers: PriceTier[] = [];
+  input.passTypes.forEach((pt, i) => {
+    const ptId = `pt-mock-${seq}-${i}`;
+    newPassTypes.push({
+      id: ptId,
+      tenant_id: tenantId,
+      event_id: eventId,
+      zone_id: zoneId,
+      code: slugifyTitle(pt.name).toUpperCase().replace(/-/g, "_"),
+      name: pt.name,
+      description: `All ${nightCount} night${nightCount === 1 ? "" : "s"}, General Ground. Admits ${pt.admits}.`,
+      kind: "season",
+      admits: pt.admits,
+      night_ids: allNightIds,
+      total_quantity: pt.totalQuantity,
+      sold_quantity: 0,
+      held_quantity: 0,
+      min_per_order: 1,
+      max_per_order: 6,
+      sale_starts_at: null,
+      sale_ends_at: null,
+      requires_photo: false,
+      is_transferable: true,
+      status: "on_sale",
+      sort_order: i,
+      created_at: now,
+      updated_at: now,
+    });
+    newPriceTiers.push({
+      id: `tier-mock-${seq}-${i}`,
+      tenant_id: tenantId,
+      pass_type_id: ptId,
+      name: "Regular",
+      price_paise: paise(pt.pricePaise),
+      starts_at: null,
+      ends_at: null,
+      quantity_cap: null,
+      quantity_sold: 0,
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    });
+  });
+
+  const event: Event = {
+    id: eventId,
+    tenant_id: tenantId,
+    venue_id: venueId,
+    slug,
+    title: input.title,
+    subtitle: null,
+    description: null,
+    status: "draft",
+    starts_on: input.startDate,
+    ends_on: addDaysIso(input.startDate, nightCount - 1),
+    timezone: "Asia/Kolkata",
+    cover_url: null,
+    og_image_url: null,
+    category: "garba",
+    reentry_policy: "unlimited",
+    reentry_window_minutes: null,
+    published_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+
+  _events.push(event);
+  _venues.push(venue);
+  _zones.push(zone);
+  _gates.push(gate);
+  _eventNights.push(...nights);
+  _passTypes.push(...newPassTypes);
+  _priceTiers.push(...newPriceTiers);
+  await persist();
+  return event;
+}
+
+/** FE-07 handoff: supabase.from('events').update({status}).eq('id', eventId) */
+export async function updateEventStatus(
+  eventId: string,
+  status: "draft" | "published"
+): Promise<Event | null> {
+  const event = _events.find((e) => e.id === eventId);
+  if (!event) return null;
+  event.status = status;
+  if (status === "published" && !event.published_at) event.published_at = new Date().toISOString();
+  event.updated_at = new Date().toISOString();
+  await persist();
+  return event;
 }
 
 /** FE-07 handoff: supabase.from('artists').select().eq('tenant_id', tenantId) */
@@ -166,17 +490,17 @@ export async function listLineupForNight(nightId: string): Promise<NightLineup[]
 
 /** FE-07 handoff: supabase.from('pass_types').select().eq('event_id', eventId).order('sort_order') */
 export async function listPassTypes(eventId: string): Promise<PassType[]> {
-  return passTypes.filter((pt) => pt.event_id === eventId);
+  return _passTypes.filter((pt) => pt.event_id === eventId);
 }
 
 /** FE-07 handoff: supabase.from('pass_types').select().eq('event_id', eventId).eq('zone_id', zoneId) */
 export async function listPassTypesForZone(eventId: string, zoneId: string): Promise<PassType[]> {
-  return passTypes.filter((pt) => pt.event_id === eventId && pt.zone_id === zoneId);
+  return _passTypes.filter((pt) => pt.event_id === eventId && pt.zone_id === zoneId);
 }
 
 /** FE-07 handoff: supabase.from('price_tiers').select().eq('pass_type_id', passTypeId).order('sort_order') */
 export async function listPriceTiers(passTypeId: string): Promise<PriceTier[]> {
-  return priceTiers.filter((t) => t.pass_type_id === passTypeId);
+  return _priceTiers.filter((t) => t.pass_type_id === passTypeId);
 }
 
 /**
@@ -194,18 +518,23 @@ export async function listPriceTiers(passTypeId: string): Promise<PriceTier[]> {
  * FE-07 handoff: a `min(price_paise)` join across pass_types and price_tiers.
  */
 export async function getZoneFromPrice(eventId: string, zoneId: string): Promise<Paise | null> {
-  const zonePassTypes = passTypes.filter(
+  const zonePassTypes = _passTypes.filter(
     (pt) => pt.event_id === eventId && pt.zone_id === zoneId && pt.status === "on_sale"
   );
   const prices = zonePassTypes.flatMap((pt) =>
-    priceTiers.filter((t) => t.pass_type_id === pt.id).map((t) => t.price_paise)
+    _priceTiers.filter((t) => t.pass_type_id === pt.id).map((t) => t.price_paise)
   );
   return prices.length > 0 ? (Math.min(...prices) as Paise) : null;
 }
 
-/** FE-07 handoff: supabase.from('addons').select().eq('event_id', eventId) */
+/**
+ * FE-07 handoff: supabase.from('addons').select().eq('event_id', eventId).eq('status', 'on_sale')
+ * USR-06: booking used to quote every addon regardless of status, but
+ * checkout never charged or itemized them — an add-on shown here has to be
+ * fully charged and delivered, or it doesn't belong on sale at all.
+ */
 export async function listAddons(eventId: string): Promise<AddOn[]> {
-  return addons.filter((a) => a.event_id === eventId);
+  return _addons.filter((a) => a.event_id === eventId && a.status === "on_sale");
 }
 
 /** FE-07 handoff: supabase.from('promo_codes').select().eq('tenant_id', tenantId).eq('code', code).single() */
@@ -274,11 +603,15 @@ export async function createOrder(
     ...input,
   };
   _orders.push(order);
+  await persist();
   return order;
 }
 
 export interface CompleteMockOrderInput {
   orderId: string;
+  /** The session's verified phone at pay time — overwrites whatever the order was created with (USR-05: createOrder often runs before sign-in, leaving buyer_phone empty). */
+  buyerPhone: string;
+  buyerName: string | null;
   passTypeId: string;
   zoneId: string;
   quantity: number;
@@ -308,8 +641,18 @@ export async function completeMockOrder(
   const order = _orders.find((o) => o.id === input.orderId);
   if (!order) throw new Error(`completeMockOrder: order ${input.orderId} not found`);
 
+  // USR-04: idempotent on provider_payment_id — a second call for an
+  // already-paid order (double-click, retry, stale tab) must not mint a
+  // second set of order items/payment/passes. Real webhook handler does
+  // this same check keyed on the provider's payment id.
+  if (order.status === "paid") {
+    return { order, passes: _passes.filter((p) => p.order_id === order.id) };
+  }
+
   const now = new Date().toISOString();
   order.status = "paid";
+  order.buyer_phone = input.buyerPhone;
+  order.buyer_name = input.buyerName;
   order.subtotal_paise = paise(input.subtotalPaise);
   order.convenience_fee_paise = paise(input.platformFeePaise + input.gatewayFeePaise);
   order.gst_paise = paise(input.gstPaise);
@@ -380,6 +723,7 @@ export async function completeMockOrder(
     newPasses.push(pass);
   }
 
+  await persist();
   return { order, passes: newPasses };
 }
 
@@ -442,6 +786,7 @@ export async function recordCheckIn(
     created_at: new Date().toISOString(),
   };
   _checkIns.push(ci);
+  await persist();
   return ci;
 }
 
@@ -492,7 +837,7 @@ export async function buildScanManifest(eventId: string, nightId = "night-05"): 
   for (const p of _passes.filter((x) => x.event_id === eventId)) {
     const holders = _passHolders.filter((ph) => ph.pass_id === p.id);
     const holderName = holders.map((h) => h.full_name).filter(Boolean).join(" & ") || null;
-    const zoneMatch = zones.find((z) => z.id === p.zone_id);
+    const zoneMatch = _zones.find((z) => z.id === p.zone_id);
     const tonightCount = _checkIns.filter(
       (ci) => ci.pass_id === p.id && ci.night_id === nightId && ci.direction === "in" && ci.result === "allowed"
     ).length;
@@ -564,6 +909,7 @@ export async function submitApplication(
     submittedAt: now,
     decidedAt: null,
     provisionedAt: null,
+    tenantId: null,
     createdAt: now,
     updatedAt: now,
     ...input,
@@ -572,14 +918,53 @@ export async function submitApplication(
   // Mirrors real behaviour: a submitted application moves straight into
   // the internal review queue (per FE-08 §5, step 5).
   application.status = "under_review";
+  await persist();
   return application;
+}
+
+/** ADM-16: creates the Tenant + TenantBranding row an approval provisions.
+ * Idempotent on tenant id, so re-running approve on an already-provisioned
+ * application (or the seed data's pre-approved Umang application) never
+ * duplicates a tenant. */
+function provisionTenantForApplication(application: TenantApplication, now: string): string {
+  let slug = slugifyTitle(application.desiredDomain);
+  if (_tenants.some((t) => t.slug === slug && t.id !== `t-${slug}`)) slug = `${slug}-${application.id.slice(-4)}`;
+  const tenantId = `t-${slug}`;
+  if (!_tenants.some((t) => t.id === tenantId)) {
+    _tenants.push({
+      id: tenantId,
+      slug,
+      legal_name: application.orgName,
+      display_name: application.orgName,
+      status: "active",
+      gstin: null,
+      pan: null,
+      support_phone: application.phone,
+      support_email: null,
+      created_at: now,
+      updated_at: now,
+    });
+    _tenantBrandings.push({
+      tenant_id: tenantId,
+      logo_url: null,
+      logo_dark_url: null,
+      favicon_url: null,
+      primary_color: "#F55B2A",
+      accent_color: "#B24FE0",
+      custom_domain: null,
+      domain_verified: false,
+      meta_title: application.orgName,
+      meta_description: null,
+    });
+  }
+  return tenantId;
 }
 
 /**
  * Internal-ops only (FE-10's approval screen). Approves an application and
- * marks it provisioned — in the real system this also kicks off tenant
- * row creation + subdomain provisioning; here it just flips both fields at
- * once since there's no real provisioning pipeline to await.
+ * marks it provisioned — approve = provision now actually creates the
+ * `Tenant` (+ branding) row a login can resolve to, instead of only
+ * flipping status fields with nothing behind them (ADM-16).
  * FE-11 handoff: supabase.rpc('approve_tenant_application', { p_application_id })
  */
 export async function approveApplication(id: string): Promise<TenantApplication | null> {
@@ -590,7 +975,9 @@ export async function approveApplication(id: string): Promise<TenantApplication 
   application.rejectionReason = null;
   application.decidedAt = now;
   application.provisionedAt = now;
+  application.tenantId = provisionTenantForApplication(application, now);
   application.updatedAt = now;
+  await persist();
   return application;
 }
 
@@ -612,6 +999,7 @@ export async function rejectApplication(
   application.rejectionReason = reason;
   application.decidedAt = now;
   application.updatedAt = now;
+  await persist();
   return application;
 }
 
@@ -642,10 +1030,20 @@ export async function quoteRefund(orderId: string): Promise<RefundQuote | null> 
   const order = _orders.find((o) => o.id === orderId);
   if (!order || order.status !== "paid") return null;
 
-  const nights = eventNights
+  const nights = _eventNights
     .filter((n) => n.event_id === order.event_id)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const firstNight = nights[0];
+
+  // USR-27: /legal/refund-policy promises "measured against the first night
+  // the pass covers" — a weekend pass (nights 6-9) was instead measured from
+  // the event's opening night, quoting a more generous tier than the pass
+  // actually earns. min(pass.night_ids) across this order's own passes is
+  // the same number the legal page describes.
+  const coveredNightIds = new Set(
+    _passes.filter((p) => p.order_id === orderId).flatMap((p) => p.night_ids)
+  );
+  const coveredNights = nights.filter((n) => coveredNightIds.has(n.id));
+  const firstNight = coveredNights[0] ?? nights[0];
   if (!firstNight) return null;
 
   const msPerDay = 86_400_000;
@@ -703,6 +1101,7 @@ export async function requestRefund(orderId: string, reason: string): Promise<Re
     updated_at: now,
   };
   _refunds.push(refund);
+  await persist();
   return refund;
 }
 
@@ -735,7 +1134,7 @@ export async function getGroupInvite(code: string): Promise<GroupInviteView | nu
   if (!invite) return null;
   const pass = _passes.find((p) => p.pass_code === invite.passCode);
   if (!pass) return null;
-  const ev = event.id === pass.event_id ? event : null;
+  const ev = _events.find((e) => e.id === pass.event_id) ?? null;
   if (!ev) return null;
   return {
     code: invite.code,
@@ -743,7 +1142,7 @@ export async function getGroupInvite(code: string): Promise<GroupInviteView | nu
     expired: new Date(invite.expiresAt).getTime() < Date.now() || pass.status !== "active",
     pass,
     event: ev,
-    zone: zones.find((z) => z.id === pass.zone_id) ?? null,
+    zone: _zones.find((z) => z.id === pass.zone_id) ?? null,
     spots: pass.admits,
     holders: _passHolders.filter((ph) => ph.pass_id === pass.id).sort((a, b) => a.holder_index - b.holder_index),
   };
@@ -774,5 +1173,6 @@ export async function joinGroupInvite(code: string, fullName: string, phone: str
     created_at: now,
     updated_at: now,
   });
+  await persist();
   return { ok: true, holderIndex };
 }

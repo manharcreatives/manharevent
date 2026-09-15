@@ -14,7 +14,9 @@
     "nightLineupSubtitle": "A theme, a dress code, and a headline artist for every night.",
     "closingTitle": "Your pass lands on WhatsApp in seconds",
     "closingBody": "Pay once, get the QR straight away, and show it at the gate. Re-entry is unlimited every night your pass covers.",
-    "heroEyebrow": "Navratri {year}"
+    "heroEyebrow": "Navratri {year}",
+    "demoBadge": "Demo",
+    "otherGroundNote": "A smaller open ground — one ticket, no zones. For demo."
   },
   "Event": {
     "bookPasses": "Book Passes",
@@ -22,6 +24,7 @@
     "about": "About this event",
     "nightLineup": "Night-by-night lineup",
     "zones": "Zones",
+    "passesTitle": "Passes",
     "venueTitle": "Venue",
     "gallery": "Gallery",
     "faq": "FAQ",
@@ -132,7 +135,11 @@
     "hideSummary": "Hide",
     "addonsAdded": "{count} added",
     "soldOutZone": "Sold out",
-    "emptyTotalHint": "Pick a pass to see your total"
+    "emptyTotalHint": "Pick a pass to see your total",
+    "pickNightTitle": "Choose your night",
+    "nightNumber": "Night {number}",
+    "continueToPayError": "Couldn't start checkout — check your connection and try again.",
+    "openGroundNote": "One general ground — no zones to choose."
   },
   "Checkout": {
     "title": "Complete your booking",
@@ -183,7 +190,16 @@
     "choosePasses": "Choose passes",
     "backToEvent": "Back to event",
     "admitsShort": "Admits {count}",
-    "nightsCovered": "{count, plural, one {# night} other {# nights}}"
+    "nightsCovered": "{count, plural, one {# night} other {# nights}}",
+    "statusPendingTitle": "Payment pending",
+    "statusPendingDesc": "We haven't received your payment yet. Complete it to get your passes.",
+    "statusFailedTitle": "Payment failed",
+    "statusFailedDesc": "Your payment didn't go through. No passes were issued — you can try again.",
+    "statusExpiredTitle": "Booking window expired",
+    "statusExpiredDesc": "This booking wasn't paid in time and has expired. Start again to book your passes.",
+    "statusOtherTitle": "Order not active",
+    "statusOtherDesc": "This order isn't active for payment. Check My Orders for its current status.",
+    "retryPayment": "Complete payment"
   },
   "Auth": {
     "signInTitle": "Sign in to continue",
@@ -544,8 +560,8 @@
     "websiteDesc": "Where your audience buys passes.",
     "websiteCta": "Open event website",
     "adminTitle": "Your admin panel",
-    "adminDesc": "Manage events, passes, orders, and your team.",
-    "adminCta": "Open admin panel",
+    "adminDesc": "Manage events, passes, orders, and your team. Log in with this number to open it.",
+    "adminCta": "Log in to admin panel",
     "scannerTitle": "Gate-scanner access",
     "scannerDesc": "Issue scanner logins to your gate staff from Team → Gate Staff in your admin panel.",
     "scannerCta": "Go to Team settings",
@@ -558,6 +574,30 @@
     "next3": "Publish the site, then send the link to your WhatsApp groups.",
     "supportTitle": "Stuck on anything?",
     "supportDesc": "Message us on WhatsApp and a person will answer — not a bot."
+  },
+  "Login": {
+    "title": "Log in to your dashboard",
+    "subtitle": "For approved organizers — we'll text you a one-time code.",
+    "phoneLabel": "Mobile number",
+    "sendOtp": "Send OTP",
+    "phoneError": "Enter a valid 10-digit Indian mobile number",
+    "demoPhoneHint": "Demo mode — no SMS is actually sent. Use the number on your approved application.",
+    "useDemoNumber": "Use demo number",
+    "otpTitle": "Enter OTP",
+    "otpSubtitle": "Code sent to {phone}",
+    "otpLabel": "One-time code",
+    "verify": "Verify & continue",
+    "redirecting": "Opening your dashboard...",
+    "changeNumber": "Change number",
+    "otpError": "Enter the 6-digit code",
+    "notFoundTitle": "We couldn't find your organization",
+    "notFoundBody": "This number isn't linked to an approved organizer account. Register first, or check the number.",
+    "underReviewTitle": "Your application is still under review",
+    "underReviewBody": "You'll be able to log in once it's approved — check your application status for updates.",
+    "registerCta": "Register your event",
+    "checkStatusCta": "Check application status",
+    "tryAgain": "Try a different number",
+    "viewDemoInstead": "View demo (Manhar) instead"
   },
   "Meta": {
     "siteTitle": "{name} — Navratri 2026 Garba Passes",

@@ -17,6 +17,9 @@ out/
 # Turborepo cache
 .turbo/
 
+# Mock-data file-backed store (cross-process demo sync — never committed, machine-local)
+packages/mock-data/.data/
+
 # OS
 .DS_Store
 Thumbs.db

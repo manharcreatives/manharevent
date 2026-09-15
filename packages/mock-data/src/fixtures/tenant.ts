@@ -39,3 +39,38 @@ export const tenantCommission: TenantCommission = {
   min_fee_paise: paise(2000),
   max_fee_paise: paise(50000),
 };
+
+// ─── Second demo organizer — Umang Garba Group ────────────────────────────────
+// Umang's application is seeded already `status: "approved"` with `tenantId`
+// set (fixtures/tenant-applications.ts, ta-mock-002), so this is what
+// approveApplication would have produced had this session run that flow —
+// a real, independent tenant to prove multi-tenant isolation with, not just
+// Manhar alone.
+export const UMANG_TENANT_ID = "t-umang";
+
+export const umangTenant: Tenant = {
+  id: UMANG_TENANT_ID,
+  slug: "umang",
+  legal_name: "Umang Garba Group",
+  display_name: "Umang Garba Group",
+  status: "active",
+  gstin: null,
+  pan: null,
+  support_phone: "+919033344556",
+  support_email: null,
+  created_at: "2026-09-06T15:00:00Z",
+  updated_at: "2026-09-06T15:00:00Z",
+};
+
+export const umangBranding: TenantBranding = {
+  tenant_id: UMANG_TENANT_ID,
+  logo_url: null,
+  logo_dark_url: null,
+  favicon_url: null,
+  primary_color: "#F55B2A",
+  accent_color: "#B24FE0",
+  custom_domain: null,
+  domain_verified: false,
+  meta_title: "Umang Garba Group",
+  meta_description: null,
+};

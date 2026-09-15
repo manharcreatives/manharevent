@@ -34,7 +34,7 @@ export const NAV: NavItem[] = [
     Icon: Calendar,
     children: [
       { href: "/dashboard/events", label: "All events" },
-      { href: "/dashboard/events/new", label: "Create / clone" },
+      { href: "/dashboard/events/new", label: "Create event" },
     ],
   },
   {

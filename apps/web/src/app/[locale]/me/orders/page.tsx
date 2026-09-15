@@ -5,8 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button, Money } from "@manhar-garba/ui";
 import { Link } from "@/i18n/navigation";
 import { useAuthStore } from "@/lib/auth-store";
-import { listOrdersByPhone } from "@manhar-garba/mock-data";
-import type { Order } from "@manhar-garba/domain";
+import { getMyAccountDataAction, type MyOrderSummary } from "@/app/actions/me";
 import { Receipt } from "lucide-react";
 
 export default function MyOrdersPage() {
@@ -14,12 +13,12 @@ export default function MyOrdersPage() {
   const tCommon = useTranslations("Common");
   const tAuth = useTranslations("Auth");
   const { phone, isAuthenticated } = useAuthStore();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<MyOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!phone) { setLoading(false); return; }
-    listOrdersByPhone(phone).then((os) => { setOrders(os); setLoading(false); });
+    getMyAccountDataAction(phone).then((data) => { setOrders(data.orders); setLoading(false); });
   }, [phone]);
 
   if (!isAuthenticated) {
@@ -52,14 +51,14 @@ export default function MyOrdersPage() {
             <div key={order.id} className="rounded-xl border border-border bg-surface p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{order.order_number}</p>
+                  <p className="text-sm font-semibold text-foreground">{order.orderNumber}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {t("orderedOn", { date: new Date(order.created_at).toLocaleDateString("en-IN") })}
+                    {t("orderedOn", { date: new Date(order.createdAt).toLocaleDateString("en-IN") })}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-foreground">
-                    <Money paise={order.total_paise} locale="en" />
+                    <Money paise={order.totalPaise} locale="en" />
                   </p>
                   <span className={`mt-0.5 inline-block capitalize text-xs ${order.status === "paid" ? "text-green-600" : "text-muted-foreground"}`}>
                     {order.status.replace(/_/g, " ")}

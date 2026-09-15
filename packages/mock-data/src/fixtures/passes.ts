@@ -1,8 +1,14 @@
 import type { Pass, PassHolder, CheckIn } from "@manhar-garba/domain";
-import { TENANT_ID } from "./tenant";
-import { EVENT_ID, ZONE_VIP_ID, ZONE_GOLD_ID, ZONE_GENERAL_ID, NIGHT_IDS, GATE_G2_ID, GATE_G3_ID } from "./event";
-import { PT_SEASON_COUPLE_GOLD, PT_SEASON_SOLO_GENERAL, PT_VIP_SEASON, PT_WEEKEND_COUPLE_GOLD } from "./pass-types";
-import { ORDER_RINA, ORDER_PRIYA, ORDER_AMIT, ORDER_FAMILY, ORDER_VIP } from "./orders";
+import { TENANT_ID, UMANG_TENANT_ID } from "./tenant";
+import {
+  EVENT_ID, ZONE_VIP_ID, ZONE_GOLD_ID, ZONE_GENERAL_ID, NIGHT_IDS, GATE_G2_ID, GATE_G3_ID,
+  EVENT_ID_UMANG, ZONE_UMANG_GENERAL_ID, GATE_UMANG1_ID, NIGHT_IDS_UMANG,
+} from "./event";
+import {
+  PT_SEASON_COUPLE_GOLD, PT_SEASON_SOLO_GENERAL, PT_VIP_SEASON, PT_WEEKEND_COUPLE_GOLD,
+  PT_UMANG_SEASON, PT_UMANG_SINGLE, PT_UMANG_COUPLE,
+} from "./pass-types";
+import { ORDER_RINA, ORDER_PRIYA, ORDER_AMIT, ORDER_FAMILY, ORDER_VIP, ORDER_UMANG_1, ORDER_UMANG_2, ORDER_UMANG_3, ORDER_UMANG_4 } from "./orders";
 
 export const PASS_DEMO_SINGLE = "pass-demo-single-001";
 export const PASS_RINA = "pass-rina-001";
@@ -13,6 +19,11 @@ export const PASS_FAMILY_2 = "pass-family-002";
 export const PASS_VIP = "pass-vip-001";
 export const PASS_BLOCKED = "pass-blocked-001";
 export const PASS_TRANSFERRED = "pass-transferred-001";
+
+export const PASS_UMANG_MEERA = "pass-umang-meera-001";
+export const PASS_UMANG_RAJ = "pass-umang-raj-001";
+export const PASS_UMANG_AARTI = "pass-umang-aarti-001";
+export const PASS_UMANG_NISHA = "pass-umang-nisha-001";
 
 export const passes: Pass[] = [
   // Demo clean single — active, 1 admit, Gold, all nights, no check-ins (shows "allowed")
@@ -204,6 +215,87 @@ export const passes: Pass[] = [
     created_at: "2026-09-12T09:01:00Z",
     updated_at: "2026-09-15T12:00:00Z",
   },
+  // Umang's own tenant — season, single-night (checked in tonight), couple.
+  {
+    id: PASS_UMANG_MEERA,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_id: ORDER_UMANG_1,
+    order_item_id: "oi-umang-meera-001",
+    pass_type_id: PT_UMANG_SEASON,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    pass_code: "UMG26-MRA-0001",
+    qr_payload: "UMG26.v1.pass-umang-meera-001.HMAC_STUB",
+    admits: 1,
+    night_ids: NIGHT_IDS_UMANG,
+    status: "active",
+    issued_at: "2026-09-08T10:31:00Z",
+    pdf_url: null,
+    wallet_pass_url: null,
+    blocked_reason: null,
+    created_at: "2026-09-08T10:31:00Z",
+    updated_at: "2026-09-08T10:31:00Z",
+  },
+  {
+    id: PASS_UMANG_RAJ,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_id: ORDER_UMANG_2,
+    order_item_id: "oi-umang-raj-001",
+    pass_type_id: PT_UMANG_SINGLE,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    pass_code: "UMG26-RAJ-0001",
+    qr_payload: "UMG26.v1.pass-umang-raj-001.HMAC_STUB",
+    admits: 1,
+    night_ids: [NIGHT_IDS_UMANG[0]!],
+    status: "used_up",
+    issued_at: "2026-09-09T18:11:00Z",
+    pdf_url: null,
+    wallet_pass_url: null,
+    blocked_reason: null,
+    created_at: "2026-09-09T18:11:00Z",
+    updated_at: "2026-10-04T19:10:00Z",
+  },
+  {
+    id: PASS_UMANG_AARTI,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_id: ORDER_UMANG_3,
+    order_item_id: "oi-umang-aarti-001",
+    pass_type_id: PT_UMANG_COUPLE,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    pass_code: "UMG26-ART-0001",
+    qr_payload: "UMG26.v1.pass-umang-aarti-001.HMAC_STUB",
+    admits: 2,
+    night_ids: NIGHT_IDS_UMANG,
+    status: "active",
+    issued_at: "2026-09-11T09:46:00Z",
+    pdf_url: null,
+    wallet_pass_url: null,
+    blocked_reason: null,
+    created_at: "2026-09-11T09:46:00Z",
+    updated_at: "2026-09-11T09:46:00Z",
+  },
+  {
+    id: PASS_UMANG_NISHA,
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    order_id: ORDER_UMANG_4,
+    order_item_id: "oi-umang-nisha-001",
+    pass_type_id: PT_UMANG_SEASON,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    pass_code: "UMG26-NSH-0001",
+    qr_payload: "UMG26.v1.pass-umang-nisha-001.HMAC_STUB",
+    admits: 1,
+    night_ids: NIGHT_IDS_UMANG,
+    status: "active",
+    issued_at: "2026-09-12T16:21:00Z",
+    pdf_url: null,
+    wallet_pass_url: null,
+    blocked_reason: null,
+    created_at: "2026-09-12T16:21:00Z",
+    updated_at: "2026-09-12T16:21:00Z",
+  },
 ];
 
 export const passHolders: PassHolder[] = [
@@ -211,6 +303,10 @@ export const passHolders: PassHolder[] = [
   { id: "ph-rina-2", tenant_id: TENANT_ID, pass_id: PASS_RINA, holder_index: 2, full_name: "Kaushik Patel", phone: "+919876543010", photo_url: null, age_band: "adult", invite_code: null, filled_at: "2026-09-10T12:00:00Z", created_at: "2026-09-10T11:31:00Z", updated_at: "2026-09-10T12:00:00Z" },
   { id: "ph-priya-1", tenant_id: TENANT_ID, pass_id: PASS_PRIYA, holder_index: 1, full_name: "Priya Shah", phone: "+919876543002", photo_url: null, age_band: "adult", invite_code: null, filled_at: "2026-09-12T09:30:00Z", created_at: "2026-09-12T09:01:00Z", updated_at: "2026-09-12T09:30:00Z" },
   { id: "ph-vip-1", tenant_id: TENANT_ID, pass_id: PASS_VIP, holder_index: 1, full_name: "Meena Joshi", phone: "+919876543005", photo_url: null, age_band: "adult", invite_code: null, filled_at: "2026-07-20T11:00:00Z", created_at: "2026-07-20T10:01:00Z", updated_at: "2026-07-20T11:00:00Z" },
+  { id: "ph-umang-meera-1", tenant_id: UMANG_TENANT_ID, pass_id: PASS_UMANG_MEERA, holder_index: 1, full_name: "Meera Trivedi", phone: "+919825098001", photo_url: null, age_band: "adult", invite_code: null, filled_at: "2026-09-08T10:31:00Z", created_at: "2026-09-08T10:31:00Z", updated_at: "2026-09-08T10:31:00Z" },
+  { id: "ph-umang-raj-1", tenant_id: UMANG_TENANT_ID, pass_id: PASS_UMANG_RAJ, holder_index: 1, full_name: "Raj Solanki", phone: "+919825098002", photo_url: null, age_band: "adult", invite_code: null, filled_at: "2026-09-09T18:11:00Z", created_at: "2026-09-09T18:11:00Z", updated_at: "2026-09-09T18:11:00Z" },
+  { id: "ph-umang-aarti-1", tenant_id: UMANG_TENANT_ID, pass_id: PASS_UMANG_AARTI, holder_index: 1, full_name: "Aarti Desai", phone: "+919825098003", photo_url: null, age_band: "adult", invite_code: null, filled_at: "2026-09-11T09:46:00Z", created_at: "2026-09-11T09:46:00Z", updated_at: "2026-09-11T09:46:00Z" },
+  { id: "ph-umang-aarti-2", tenant_id: UMANG_TENANT_ID, pass_id: PASS_UMANG_AARTI, holder_index: 2, full_name: "Jignesh Desai", phone: "+919825098013", photo_url: null, age_band: "adult", invite_code: null, filled_at: "2026-09-11T09:46:00Z", created_at: "2026-09-11T09:46:00Z", updated_at: "2026-09-11T09:46:00Z" },
 ];
 
 export const checkIns: CheckIn[] = [
@@ -273,5 +369,25 @@ export const checkIns: CheckIn[] = [
     synced_at: "2026-10-02T19:15:30+05:30",
     client_uuid: "ci-client-denied-wz",
     created_at: "2026-10-02T19:15:00+05:30",
+  },
+  // Raj checked in on opening night — Umang's own gate, own tenant.
+  {
+    id: "ci-umang-raj-n01",
+    tenant_id: UMANG_TENANT_ID,
+    event_id: EVENT_ID_UMANG,
+    night_id: NIGHT_IDS_UMANG[0]!,
+    pass_id: PASS_UMANG_RAJ,
+    pass_holder_id: "ph-umang-raj-1",
+    gate_id: GATE_UMANG1_ID,
+    zone_id: ZONE_UMANG_GENERAL_ID,
+    direction: "in",
+    result: "allowed",
+    denied_reason: null,
+    scanned_by: "user-umang-gate-staff-001",
+    device_id: "device-umang-001",
+    scanned_at: "2026-10-04T19:10:00+05:30",
+    synced_at: "2026-10-04T19:10:30+05:30",
+    client_uuid: "ci-client-umang-raj-n01",
+    created_at: "2026-10-04T19:10:00+05:30",
   },
 ];

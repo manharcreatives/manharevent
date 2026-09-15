@@ -97,8 +97,12 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
   const sourceVenue = useDashboardStore((s) => s.venues.find((v) => v.id === source?.venue_id));
   const sourceNightCount = useDashboardStore((s) => (source ? s.nights.filter((n) => n.event_id === source.id).length : 9));
   const sourcePassCount = useDashboardStore((s) => (source ? s.passTypes.filter((p) => p.event_id === source.id).length : 0));
+  const sourceZoneCount = useDashboardStore((s) => (source ? s.zones.filter((z) => z.event_id === source.id).length : 0));
 
   const [step, setStep] = useState(0);
+  const [layout, setLayout] = useState<"open" | "zoned">(
+    source ? (sourceZoneCount <= 1 ? "open" : "zoned") : "zoned"
+  );
   const [title, setTitle] = useState(source ? source.title.replace(/\b(20\d\d)\b/, (y) => String(Number(y) + 1)) : "");
   const [subtitle, setSubtitle] = useState(source?.subtitle ?? "");
   const [category, setCategory] = useState(source?.category ?? "garba");
@@ -129,6 +133,7 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
       city: city.trim(),
       totalCapacity,
       reentry,
+      layout,
       cloneFromId: source?.id ?? null,
     });
     toast.success(source ? "Event cloned as a draft" : "Draft event created", {
@@ -190,6 +195,36 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
                 <option value="festival">Festival</option>
               </select>
             </Field>
+            <Field label="Ground layout">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    { value: "open" as const, label: "Open ground", hint: "One ticket, no zones — most Garba grounds" },
+                    { value: "zoned" as const, label: "Zoned ground", hint: "VIP / Gold / General, priced separately" },
+                  ]
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={Boolean(source)}
+                    onClick={() => setLayout(opt.value)}
+                    aria-pressed={layout === opt.value}
+                    className={[
+                      "rounded-lg border p-3 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      layout === opt.value ? "border-primary bg-primary/8 ring-1 ring-primary/40" : "border-border hover:border-primary/50",
+                    ].join(" ")}
+                  >
+                    <span className="block font-medium text-foreground">{opt.label}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{opt.hint}</span>
+                  </button>
+                ))}
+              </div>
+              {source && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Cloning keeps the source event&rsquo;s own zone structure.
+                </p>
+              )}
+            </Field>
           </div>
         )}
 
@@ -247,7 +282,9 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
             <p className="text-xs text-muted-foreground">
               {source
                 ? "Zones and gates are copied from the source event. Adjust capacities in the Venue tab."
-                : "Three zones are created from this capacity — VIP 10%, Gold 35%, General 55% — with one gate each. Rename or resize them in the Venue tab."}
+                : layout === "open"
+                  ? "One General Ground zone and one gate are created at this capacity — buyers won't see a zone map at all. Rename or resize it in the Venue tab."
+                  : "Three zones are created from this capacity — VIP 10%, Gold 35%, General 55% — with one gate each. Rename or resize them in the Venue tab."}
             </p>
           </div>
         )}
@@ -257,6 +294,12 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
             <div className="rounded-lg border border-border bg-surface-raised p-3 text-sm text-muted-foreground">
               {source ? (
                 <>All {sourcePassCount} pass types and their price tiers are copied with sold counts reset to zero.</>
+              ) : layout === "open" ? (
+                <>
+                  Three starter pass types are created so the event is sellable straight away: <strong className="text-foreground">Season Pass</strong>,{" "}
+                  <strong className="text-foreground">Couple Pass</strong> and <strong className="text-foreground">Any One Night</strong> — all in the
+                  one General Ground zone. Edit prices, or add a separate pass per night, in the Passes tab.
+                </>
               ) : (
                 <>
                   Four starter pass types are created so the event is sellable straight away: <strong className="text-foreground">Season Solo — General</strong>,{" "}
@@ -294,6 +337,7 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
             <dl className="space-y-2 text-sm">
               {[
                 ["Name", title || "—"],
+                ["Layout", source ? "From source event" : layout === "open" ? "Open ground (1 zone)" : "Zoned ground (3 zones)"],
                 ["Dates", startDate ? `${startDate} · ${nightCount} nights` : "—"],
                 ["Venue", venueName ? `${venueName}, ${city}` : "—"],
                 ["Capacity", totalCapacity.toLocaleString("en-IN")],
@@ -345,6 +389,10 @@ function WizardForm({ sourceId }: { sourceId: string | null }) {
           <h2 className="text-sm font-semibold text-foreground">Your draft so far</h2>
           <dl className="mt-3 space-y-2.5 text-sm">
             <SummaryLine label="Name" value={title.trim() || null} />
+            <SummaryLine
+              label="Layout"
+              value={source ? "From source event" : layout === "open" ? "Open ground" : "Zoned ground"}
+            />
             <SummaryLine label="Tagline" value={subtitle.trim() || null} />
             <SummaryLine
               label="Nights"

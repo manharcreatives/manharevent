@@ -11,11 +11,11 @@ import {
   listEventNights,
   listArtists,
   listLineupForNight,
-  listPassTypes,
-  listPriceTiers,
 } from "@manhar-garba/mock-data";
+import { eventFromPricePaise } from "@/lib/pricing";
 import { TrustStrip } from "@/components/event/trust-strip";
 import { ZoneCardsSection } from "@/components/event/zone-cards-section";
+import { PassCardsSection } from "@/components/event/pass-cards-section";
 import { StickyBookBar } from "@/components/event/sticky-book-bar";
 
 // Event landing page (manharevents-screen-specs.md §1.2). Gallery/FAQ are
@@ -82,10 +82,11 @@ export default async function EventLandingPage({
     })
   );
 
-  const passTypes = await listPassTypes(event.id);
-  const tierLists = await Promise.all(passTypes.map((pt) => listPriceTiers(pt.id)));
-  const allPrices = tierLists.flat().map((tier) => tier.price_paise);
-  const priceFromPaise = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+  // USR-11/HOME-31/USR-12: this used to be min(all tiers) — including
+  // expired early-bird windows and sold-out pass types — so the hero could
+  // quote a price nobody could actually book. eventFromPricePaise only
+  // considers on-sale, in-stock, currently-active tiers.
+  const priceFromPaise = (await eventFromPricePaise(event.id)) ?? 0;
 
   return (
     <>
@@ -119,7 +120,7 @@ export default async function EventLandingPage({
             )}
           </div>
 
-          <TrustStrip />
+          <TrustStrip supportPhone={tenant?.support_phone ?? "+919876543210"} />
         </div>
       </section>
 
@@ -152,11 +153,21 @@ export default async function EventLandingPage({
         </section>
       )}
 
-      {zones.length > 0 && (
+      {/* Open ground (zones.length <= 1 — most Garba grounds sell one
+          general ticket, no VIP/Gold split): pass cards, no zone map. The
+          zoned event below this check is completely unchanged. */}
+      {zones.length === 1 ? (
         <section className="mx-auto max-w-[1280px] px-4 py-8 pb-16 sm:px-6 lg:px-8 md:pb-8">
-          <h2 className="font-display text-xl font-bold text-foreground">{t("zones")}</h2>
-          <ZoneCardsSection zones={zones} eventId={event.id} eventSlug={event.slug} />
+          <h2 className="font-display text-xl font-bold text-foreground">{t("passesTitle")}</h2>
+          <PassCardsSection eventId={event.id} eventSlug={event.slug} />
         </section>
+      ) : (
+        zones.length > 0 && (
+          <section className="mx-auto max-w-[1280px] px-4 py-8 pb-16 sm:px-6 lg:px-8 md:pb-8">
+            <h2 className="font-display text-xl font-bold text-foreground">{t("zones")}</h2>
+            <ZoneCardsSection zones={zones} eventId={event.id} eventSlug={event.slug} />
+          </section>
+        )
       )}
 
       {venue && (

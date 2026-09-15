@@ -5,6 +5,10 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "browser": {
+    "./src/storage.ts": "./src/storage.browser.ts",
+    "./src/org-session.ts": "./src/org-session.browser.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
@@ -15,6 +19,7 @@
   "devDependencies": {
     "@manhar-garba/config": "workspace:*",
     "@eslint/eslintrc": "^3.0.0",
+    "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.0.0",
     "typescript": "^5.6.0"

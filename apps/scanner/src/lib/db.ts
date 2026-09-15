@@ -2,6 +2,7 @@
 
 import Dexie, { type Table } from "dexie";
 import type { ScanManifestEntry } from "@manhar-garba/mock-data";
+import { normalizePassCode } from "./crypto";
 
 // ─── Table row types ──────────────────────────────────────────────────────────
 
@@ -116,6 +117,9 @@ export function getDb(): ScannerDB {
 
 // ─── Settings helpers ─────────────────────────────────────────────────────────
 
+// gate_id/zone_id/night_id below are only the pre-session placeholder —
+// scan/page.tsx's init() overwrites all three (gate/zone from who signed in,
+// night from resolveActiveNight()) before the first manifest load.
 export const DEFAULT_SETTINGS: ScannerSettings = {
   id: 1,
   gate_id: "gate-g2",
@@ -150,6 +154,41 @@ export async function loadManifest(): Promise<ScanManifestEntry[]> {
   return db.manifest.toArray();
 }
 
+// ─── In-memory manifest index (O(1) scan lookups) ────────────────────────────
+// ARCH-12/P3-4: checkin.ts used to re-fetch the full manifest from IndexedDB
+// and linear-scan it on every single scan — fine at a few hundred passes,
+// not at 50k. Built once (manifest load/sync) and patched in place by
+// claimAdmit/releaseAdmit below, so a scan is one Map.get() against memory
+// instead of an array .find() over everyone who bought a ticket tonight.
+
+export interface ManifestIndex {
+  byQrPayload: Map<string, ScanManifestEntry>;
+  byPassCode: Map<string, ScanManifestEntry>;
+}
+
+let _manifestIndex: ManifestIndex | null = null;
+
+function buildManifestIndex(entries: ScanManifestEntry[]): ManifestIndex {
+  const byQrPayload = new Map<string, ScanManifestEntry>();
+  const byPassCode = new Map<string, ScanManifestEntry>();
+  for (const entry of entries) {
+    byQrPayload.set(entry.qr_payload, entry);
+    byPassCode.set(normalizePassCode(entry.pass_code), entry);
+  }
+  return { byQrPayload, byPassCode };
+}
+
+/** Lazily builds the index from IndexedDB the first time, then serves it from memory. */
+export async function getManifestIndex(): Promise<ManifestIndex> {
+  if (!_manifestIndex) _manifestIndex = buildManifestIndex(await loadManifest());
+  return _manifestIndex;
+}
+
+function patchIndexCount(passCode: string, count: number): void {
+  const cached = _manifestIndex?.byPassCode.get(normalizePassCode(passCode));
+  if (cached) cached.tonight_checkin_count = count;
+}
+
 /**
  * Replaces the manifest, preserving tonight's local admit counts.
  *
@@ -160,11 +199,12 @@ export async function loadManifest(): Promise<ScanManifestEntry[]> {
  */
 export async function storeManifest(entries: ScanManifestEntry[]): Promise<void> {
   const db = getDb();
+  let merged: ScanManifestEntry[] = [];
   await db.transaction("rw", db.manifest, db.settings, async () => {
     const previous = await db.manifest.toArray();
     const localCounts = new Map(previous.map((e) => [e.pass_code, e.tonight_checkin_count ?? 0]));
 
-    const merged = entries.map((e) => ({
+    merged = entries.map((e) => ({
       ...e,
       tonight_checkin_count: Math.max(e.tonight_checkin_count ?? 0, localCounts.get(e.pass_code) ?? 0),
     }));
@@ -179,6 +219,7 @@ export async function storeManifest(entries: ScanManifestEntry[]): Promise<void>
       manifest_loaded_at: new Date().toISOString(),
     });
   });
+  _manifestIndex = buildManifestIndex(merged);
 }
 
 /**
@@ -195,25 +236,28 @@ export async function storeManifest(entries: ScanManifestEntry[]): Promise<void>
  */
 export async function claimAdmit(passCode: string): Promise<number | null> {
   const db = getDb();
-  return db.transaction("rw", db.manifest, async () => {
+  const next = await db.transaction("rw", db.manifest, async () => {
     const entry = await db.manifest.where("pass_code").equals(passCode).first();
     if (!entry || entry.id == null) return null;
-    const next = (entry.tonight_checkin_count ?? 0) + 1;
-    await db.manifest.update(entry.id, { tonight_checkin_count: next });
-    return next;
+    const n = (entry.tonight_checkin_count ?? 0) + 1;
+    await db.manifest.update(entry.id, { tonight_checkin_count: n });
+    return n;
   });
+  if (next != null) patchIndexCount(passCode, next);
+  return next;
 }
 
 /** Gives an admit back — used when a claim is made and the scan is then rejected. */
 export async function releaseAdmit(passCode: string): Promise<void> {
   const db = getDb();
-  await db.transaction("rw", db.manifest, async () => {
+  const next = await db.transaction("rw", db.manifest, async () => {
     const entry = await db.manifest.where("pass_code").equals(passCode).first();
-    if (!entry || entry.id == null) return;
-    await db.manifest.update(entry.id, {
-      tonight_checkin_count: Math.max(0, (entry.tonight_checkin_count ?? 0) - 1),
-    });
+    if (!entry || entry.id == null) return null;
+    const n = Math.max(0, (entry.tonight_checkin_count ?? 0) - 1);
+    await db.manifest.update(entry.id, { tonight_checkin_count: n });
+    return n;
   });
+  if (next != null) patchIndexCount(passCode, next);
 }
 
 // ─── Queue helpers ────────────────────────────────────────────────────────────

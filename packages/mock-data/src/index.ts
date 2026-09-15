@@ -12,3 +12,6 @@ export * from "./fixtures/group-invites";
 // Repository (async query layer — swap body for Supabase in FE-07)
 export * from "./repo";
 export type { LiveStats, ScanManifestEntry } from "./repo";
+
+// Demo-level organizer login session (server-only — see org-session.ts)
+export * from "./org-session";

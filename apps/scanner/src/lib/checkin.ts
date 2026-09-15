@@ -4,7 +4,7 @@ import { EVENT_ID } from "@manhar-garba/mock-data";
 import {
   claimAdmit,
   releaseAdmit,
-  loadManifest,
+  getManifestIndex,
   logScan,
   type EntryMethod,
   type ScannerSettings,
@@ -30,16 +30,17 @@ export interface CommitContext {
  * its increment back to the copy it was reading. Typing the same one-admit code
  * twice on that screen admitted twice and queued two "allowed" rows.
  *
- * The manifest is re-read from IndexedDB on every scan rather than trusted from
- * React state, so the count a decision is made against is the count that is
- * actually on disk — including anything the other screen just wrote.
+ * The manifest index (db.ts) is a single in-memory cache both screens share
+ * and claimAdmit/releaseAdmit patch in place, so the count a decision is made
+ * against reflects anything the other screen just wrote — without re-reading
+ * IndexedDB or linear-scanning the manifest on every tap (ARCH-12/P3-4).
  */
 export async function commitScan(
   input: string,
   ctx: CommitContext
 ): Promise<ValidationResult> {
   const { settings, staffId, direction, source } = ctx;
-  const manifest = await loadManifest();
+  const manifest = await getManifestIndex();
 
   const result = validateScan(input, {
     activeNightId: settings.night_id,
